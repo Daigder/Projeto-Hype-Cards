@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hype Cards — Controle de Estoque</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topo">
+    <div class="marca">
+      <span class="pokebola" aria-hidden="true"></span>
+      <div>
+        <h1>Hype Cards</h1>
+        <small>Controle de estoque Pokémon TCG</small>
+      </div>
+    </div>
+    <nav id="abas">
+      <button data-aba="resumo" class="ativa">Resumo</button>
+      <button data-aba="colecoes">Coleções</button>
+      <button data-aba="cartas">Cartas</button>
+      <button data-aba="produtos">Produtos</button>
+      <button data-aba="acessorios">Acessórios</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="secao-resumo">
+      <div class="cards" id="cards-resumo"></div>
+      <h2>Itens com estoque baixo</h2>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Item</th><th>Categoria</th><th>Quantidade</th><th>Mínimo</th></tr></thead>
+          <tbody id="tabela-baixo"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="secao-lista" hidden>
+      <div class="barra">
+        <h2 id="titulo-lista"></h2>
+        <input id="busca" type="search" placeholder="Buscar por nome...">
+        <select id="filtro-colecao"></select>
+        <label class="check" id="rotulo-baixo"><input type="checkbox" id="filtro-baixo"> Só estoque baixo</label>
+        <button id="btn-novo" class="primario">+ Novo</button>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead id="cabecalho"></thead>
+          <tbody id="corpo"></tbody>
+        </table>
+      </div>
+      <p id="vazio" class="vazio" hidden>Nenhum registro encontrado.</p>
+    </section>
+  </main>
+
+  <dialog id="modal">
+    <form id="form" novalidate>
+      <h3 id="titulo-form"></h3>
+      <div id="campos-form" class="campos"></div>
+      <p id="erro-form" class="erro"></p>
+      <div class="acoes">
+        <button type="button" id="btn-cancelar">Cancelar</button>
+        <button type="submit" class="primario">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="aviso" class="aviso" hidden></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
