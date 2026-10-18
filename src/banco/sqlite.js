@@ -1,0 +1,81 @@
+import { DatabaseSync } from 'node:sqlite';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import crypto from 'node:crypto';
+
+// Driver SQLite. O node:sqlite é síncrono e usa uma única conexão; como o resto do sistema é assíncrono,
+// uma transação em andamento bloqueia as demais operações até terminar (senão elas cairiam dentro dela).
+export function conectarSqlite(arquivo) {
+  fs.mkdirSync(path.dirname(arquivo), { recursive: true });
+  const db = new DatabaseSync(arquivo);
+  db.exec('PRAGMA foreign_keys = ON;');
+
+  let fila = Promise.resolve(); // transações rodam uma de cada vez
+  let ativa = null; // promessa da transação em andamento (nunca rejeita)
+  const livre = async () => {
+    while (ativa) await ativa;
+  };
+
+  const operacoes = {
+    consultar: async (sql, params = []) => db.prepare(sql).all(...params),
+    um: async (sql, params = []) => db.prepare(sql).get(...params),
+    executar: async (sql, params = []) => ({ alteradas: Number(db.prepare(sql).run(...params).changes) }),
+    executarScript: async (sql) => db.exec(sql),
+  };
+
+  // Fora de transação: espera a transação atual terminar e executa (sem await no meio, então não intercala)
+  const foraDeTransacao = Object.fromEntries(
+    Object.entries(operacoes).map(([nome, operacao]) => [
+      nome,
+      async (...args) => {
+        await livre();
+        return operacao(...args);
+      },
+    ])
+  );
+
+  return {
+    dialeto: 'sqlite',
+    ...foraDeTransacao,
+
+    transacao(executar) {
+      const execucao = fila.then(async () => {
+        await livre();
+        let terminar;
+        ativa = new Promise((ok) => (terminar = ok));
+        db.exec('BEGIN');
+        try {
+          const resultado = await executar(operacoes);
+          db.exec('COMMIT');
+          return resultado;
+        } catch (erro) {
+          db.exec('ROLLBACK');
+          throw erro;
+        } finally {
+          ativa = null;
+          terminar();
+        }
+      });
+      fila = execucao.catch(() => {});
+      return execucao;
+    },
+
+    // Cópia consistente do banco para o backup, mesmo com o sistema em uso
+    async gerarCopia() {
+      await livre();
+      const copia = path.join(os.tmpdir(), `hypecards-${crypto.randomUUID()}.db`);
+      try {
+        db.prepare('VACUUM INTO ?').run(copia);
+        return { nome: 'hypecards.db', dados: fs.readFileSync(copia) };
+      } finally {
+        fs.rmSync(copia, { force: true });
+      }
+    },
+
+    async fechar() {
+      await livre();
+      db.close();
+    },
+  };
+}

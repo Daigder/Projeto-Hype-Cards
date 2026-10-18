@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar — Hype Cards</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="stylesheet" href="style.css">
+  <script src="tema.js"></script>
+</head>
+<body class="pagina-login">
+  <button id="btn-tema" class="btn-tema canto" type="button"></button>
+
+  <main class="caixa-login">
+    <img class="logo-login" src="logo.png" alt="Logo Hype Cards">
+    <h1>Hype Cards</h1>
+    <p class="subtitulo">Controle de estoque Pokémon TCG</p>
+
+    <form id="form-login" novalidate>
+      <label>Usuário
+        <input name="usuario" autocomplete="username" required autofocus>
+      </label>
+      <label>Senha
+        <input name="senha" type="password" autocomplete="current-password" required>
+      </label>
+      <p id="erro-login" class="erro" role="alert"></p>
+      <button type="submit" class="primario largo">Entrar</button>
+    </form>
+  </main>
+
+  <script type="module" src="login.js"></script>
+</body>
+</html>

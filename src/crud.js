@@ -1,17 +1,20 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
+import fs from 'node:fs';
+import path from 'node:path';
+import { gerarCsv, enviarCsv } from './csv.js';
+import { registrarMovimentacao, validarMovimentacao } from './movimentacoes.js';
+import { ErroHttp, lerId, lerPaginacao } from './http.js';
 
-export class ErroHttp extends Error {
-  constructor(status, mensagem) {
-    super(mensagem);
-    this.status = status;
-  }
-}
+export { ErroHttp, lerId, lerPaginacao };
 
-function lerId(valor) {
-  const id = Number(valor);
-  if (!Number.isInteger(id) || id <= 0) throw new ErroHttp(400, 'ID inválido.');
-  return id;
-}
+// Formatos de imagem aceitos e a extensão usada para salvar o arquivo
+const TIPOS_IMAGEM = {
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+};
+export const TAMANHO_MAX_IMAGEM = '5mb';
 
 // Converte e valida o corpo da requisição de acordo com a definição dos campos
 function validar(corpo, campos) {
@@ -47,89 +50,196 @@ function validar(corpo, campos) {
   return dados;
 }
 
-// Cria as rotas de CRUD (listar, buscar, criar, atualizar, excluir) para um recurso
-export function criarRotasCrud(db, { tabela, select, campos, ordem = 't.nome' }) {
+// Cria as rotas de CRUD (listar, buscar, criar, atualizar, excluir) para um recurso.
+// Leitura e movimentação de estoque: qualquer usuário logado. Cadastro, edição e exclusão: só admin.
+export function criarRotasCrud(db, recurso, { pastaImagens, exigirAdmin }) {
+  const { tabela, select, campos, extras = {}, ordem = 't.nome', imagem = false } = recurso;
   const router = Router();
   const nomesCampos = Object.keys(campos);
   const temEstoque = 'quantidade' in campos;
 
-  const buscar = (id) => {
-    const item = db.prepare(`${select} WHERE t.id = ?`).get(id);
+  // Colunas que podem ser usadas em ?ordenar= (lista fechada: o valor nunca vai direto para o SQL)
+  const ordenaveis = { id: 't.id', criado_em: 't.criado_em' };
+  for (const [nome, regra] of Object.entries(campos)) {
+    if (nome === 'colecao_id') continue;
+    ordenaveis[nome] = regra.tipo === 'texto' ? db.sql.semCaixa(`t.${nome}`) : `t.${nome}`;
+  }
+  for (const [nome, extra] of Object.entries(extras)) {
+    ordenaveis[nome] = extra.texto ? db.sql.semCaixa(extra.sql) : extra.sql;
+  }
+
+  // Colunas do CSV: a coleção sai pelo nome, não pelo id; a imagem não entra
+  const colunasCsv = [
+    { chave: 'id', rotulo: 'ID' },
+    ...nomesCampos.map((nome) =>
+      nome === 'colecao_id' ? { chave: 'colecao_nome', rotulo: 'Coleção' } : { chave: nome, rotulo: campos[nome].rotulo, tipo: campos[nome].tipo }
+    ),
+    ...Object.entries(extras).filter(([nome]) => nome !== 'colecao_nome').map(([chave, e]) => ({ chave, rotulo: e.rotulo })),
+    { chave: 'criado_em', rotulo: 'Cadastrado em' },
+  ];
+
+  const apagarArquivoImagem = (nome) => {
+    if (nome) fs.rmSync(path.join(pastaImagens, path.basename(nome)), { force: true });
+  };
+
+  // "conexao" permite buscar dentro de uma transação (tx) ou direto no banco (db)
+  const buscar = async (id, conexao = db, bloquear = false) => {
+    const item = await conexao.um(`${select} WHERE t.id = ?${bloquear ? db.sql.bloquearLinha : ''}`, [id]);
     if (!item) throw new ErroHttp(404, 'Registro não encontrado.');
     return item;
   };
 
-  // READ - lista com filtros opcionais: ?busca=, ?colecao_id=, ?estoque_baixo=1
-  router.get('/', (req, res) => {
+  // Filtros: ?busca=, ?colecao_id=, ?estoque_baixo=1 · Ordem: ?ordenar=preco&direcao=desc
+  const montarConsulta = (query) => {
     const filtros = [];
     const params = [];
-    if (req.query.busca) {
-      filtros.push('t.nome LIKE ?');
-      params.push(`%${req.query.busca}%`);
+    if (query.busca) {
+      filtros.push(`t.nome ${db.sql.like} ?`);
+      params.push(`%${query.busca}%`);
     }
-    if ('colecao_id' in campos && req.query.colecao_id) {
+    if ('colecao_id' in campos && query.colecao_id) {
       filtros.push('t.colecao_id = ?');
-      params.push(lerId(req.query.colecao_id));
+      params.push(lerId(query.colecao_id));
     }
-    if (temEstoque && req.query.estoque_baixo === '1') {
+    if (temEstoque && query.estoque_baixo === '1') {
       filtros.push('t.quantidade <= t.estoque_minimo');
     }
     const where = filtros.length ? ` WHERE ${filtros.join(' AND ')}` : '';
-    res.json(db.prepare(`${select}${where} ORDER BY ${ordem}`).all(...params));
+
+    let orderBy = ordem;
+    if (query.ordenar) {
+      const coluna = ordenaveis[query.ordenar];
+      if (!coluna) throw new ErroHttp(400, `Não é possível ordenar por "${query.ordenar}".`);
+      orderBy = `${coluna} ${query.direcao === 'desc' ? 'DESC' : 'ASC'}, t.id`;
+    }
+    return { where, params, orderBy };
+  };
+
+  // READ - lista. O total de registros (sem paginação) vai no cabeçalho X-Total-Count.
+  router.get('/', async (req, res) => {
+    const { where, params, orderBy } = montarConsulta(req.query);
+    const paginacao = lerPaginacao(req.query);
+    const { total } = await db.um(`SELECT COUNT(*) AS total FROM (${select}${where}) AS contagem`, params);
+    const itens = await db.consultar(`${select}${where} ORDER BY ${orderBy}${paginacao?.sql ?? ''}`, [
+      ...params,
+      ...(paginacao?.params ?? []),
+    ]);
+    res.setHeader('X-Total-Count', total);
+    res.json(itens);
+  });
+
+  // Exporta a lista (com os mesmos filtros e ordem da tela) para CSV
+  router.get('/exportar.csv', async (req, res) => {
+    const { where, params, orderBy } = montarConsulta(req.query);
+    const itens = await db.consultar(`${select}${where} ORDER BY ${orderBy}`, params);
+    enviarCsv(res, tabela, gerarCsv(itens, colunasCsv));
   });
 
   // READ - um registro
-  router.get('/:id', (req, res) => {
-    res.json(buscar(lerId(req.params.id)));
+  router.get('/:id', async (req, res) => {
+    res.json(await buscar(lerId(req.params.id)));
   });
 
   // CREATE
-  router.post('/', (req, res) => {
+  router.post('/', exigirAdmin, async (req, res) => {
     const dados = validar(req.body, campos);
     const marcadores = nomesCampos.map(() => '?').join(', ');
-    const { lastInsertRowid } = db
-      .prepare(`INSERT INTO ${tabela} (${nomesCampos.join(', ')}) VALUES (${marcadores})`)
-      .run(...nomesCampos.map((c) => dados[c]));
-    res.status(201).json(buscar(Number(lastInsertRowid)));
+    const id = await db.transacao(async (tx) => {
+      const { id } = await tx.um(
+        `INSERT INTO ${tabela} (${nomesCampos.join(', ')}) VALUES (${marcadores}) RETURNING id`,
+        nomesCampos.map((c) => dados[c])
+      );
+      if (temEstoque && dados.quantidade > 0) {
+        await registrarMovimentacao(tx, {
+          recurso: tabela, item: { id, ...dados }, operacao: 'entrada', motivo: 'Cadastro inicial',
+          quantidade: dados.quantidade, quantidadeAnterior: 0, usuario: req.usuario,
+        });
+      }
+      return id;
+    });
+    res.status(201).json(await buscar(id));
   });
 
-  // UPDATE
-  router.put('/:id', (req, res) => {
+  // UPDATE - se a quantidade mudar pela edição, a diferença entra no histórico como ajuste
+  router.put('/:id', exigirAdmin, async (req, res) => {
     const id = lerId(req.params.id);
-    buscar(id);
     const dados = validar(req.body, campos);
     const atribuicoes = nomesCampos.map((c) => `${c} = ?`).join(', ');
-    db.prepare(`UPDATE ${tabela} SET ${atribuicoes} WHERE id = ?`).run(...nomesCampos.map((c) => dados[c]), id);
-    res.json(buscar(id));
+    await db.transacao(async (tx) => {
+      const anterior = await buscar(id, tx, true);
+      await tx.executar(`UPDATE ${tabela} SET ${atribuicoes} WHERE id = ?`, [...nomesCampos.map((c) => dados[c]), id]);
+      const diferenca = temEstoque ? dados.quantidade - anterior.quantidade : 0;
+      if (diferenca !== 0) {
+        await registrarMovimentacao(tx, {
+          recurso: tabela, item: { ...anterior, ...dados }, operacao: diferenca > 0 ? 'entrada' : 'saida',
+          motivo: 'Ajuste de inventário', quantidade: Math.abs(diferenca), quantidadeAnterior: anterior.quantidade,
+          observacao: 'Quantidade alterada na edição do cadastro', usuario: req.usuario,
+        });
+      }
+    });
+    res.json(await buscar(id));
   });
 
-  // DELETE
-  router.delete('/:id', (req, res) => {
+  // DELETE - o histórico de movimentações do item é mantido
+  router.delete('/:id', exigirAdmin, async (req, res) => {
     const id = lerId(req.params.id);
-    buscar(id);
-    db.prepare(`DELETE FROM ${tabela} WHERE id = ?`).run(id);
+    const item = await buscar(id);
+    await db.executar(`DELETE FROM ${tabela} WHERE id = ?`, [id]);
+    if (imagem) apagarArquivoImagem(item.imagem);
     res.status(204).end();
   });
 
-  // Movimentação de estoque: { "operacao": "entrada" | "saida", "quantidade": 5 }
-  if (temEstoque) {
-    router.patch('/:id/estoque', (req, res) => {
+  // Imagem do item: o corpo da requisição é o próprio arquivo (Content-Type: image/png, image/jpeg...)
+  if (imagem) {
+    router.put('/:id/imagem', exigirAdmin, express.raw({ type: 'image/*', limit: TAMANHO_MAX_IMAGEM }), async (req, res) => {
       const id = lerId(req.params.id);
-      const { operacao } = req.body ?? {};
-      const quantidade = Number(req.body?.quantidade);
-      if (operacao !== 'entrada' && operacao !== 'saida') {
-        throw new ErroHttp(400, 'A operação deve ser "entrada" ou "saida".');
-      }
-      if (!Number.isInteger(quantidade) || quantidade <= 0) {
-        throw new ErroHttp(400, 'A quantidade deve ser um número inteiro maior que zero.');
-      }
-      const item = buscar(id);
-      const novaQuantidade = operacao === 'entrada' ? item.quantidade + quantidade : item.quantidade - quantidade;
-      if (novaQuantidade < 0) {
-        throw new ErroHttp(400, `Estoque insuficiente: há apenas ${item.quantidade} unidade(s).`);
-      }
-      db.prepare(`UPDATE ${tabela} SET quantidade = ? WHERE id = ?`).run(novaQuantidade, id);
-      res.json(buscar(id));
+      const item = await buscar(id);
+      const extensao = TIPOS_IMAGEM[req.get('Content-Type')];
+      if (!extensao) throw new ErroHttp(400, 'Formato de imagem inválido. Use PNG, JPG, WEBP ou GIF.');
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0) throw new ErroHttp(400, 'Nenhuma imagem enviada.');
+
+      const nomeArquivo = `${tabela}-${id}-${Date.now()}${extensao}`;
+      fs.mkdirSync(pastaImagens, { recursive: true });
+      fs.writeFileSync(path.join(pastaImagens, nomeArquivo), req.body);
+      await db.executar(`UPDATE ${tabela} SET imagem = ? WHERE id = ?`, [nomeArquivo, id]);
+      apagarArquivoImagem(item.imagem);
+      res.json(await buscar(id));
+    });
+
+    router.delete('/:id/imagem', exigirAdmin, async (req, res) => {
+      const id = lerId(req.params.id);
+      const item = await buscar(id);
+      await db.executar(`UPDATE ${tabela} SET imagem = NULL WHERE id = ?`, [id]);
+      apagarArquivoImagem(item.imagem);
+      res.json(await buscar(id));
+    });
+  }
+
+  // Movimentação de estoque, registrada no histórico:
+  // { "operacao": "saida", "motivo": "Venda", "quantidade": 2, "preco_unitario": 40, "observacao": "..." }
+  if (temEstoque) {
+    router.patch('/:id/estoque', async (req, res) => {
+      const id = lerId(req.params.id);
+      await db.transacao(async (tx) => {
+        // Trava o item até o fim da transação: duas vendas ao mesmo tempo não leem o mesmo saldo
+        const item = await buscar(id, tx, true);
+        const mov = validarMovimentacao(req.body, item);
+        const novaQuantidade = mov.operacao === 'entrada' ? item.quantidade + mov.quantidade : item.quantidade - mov.quantidade;
+        if (novaQuantidade < 0) {
+          throw new ErroHttp(400, `Estoque insuficiente: há apenas ${item.quantidade} unidade(s).`);
+        }
+        await tx.executar(`UPDATE ${tabela} SET quantidade = ? WHERE id = ?`, [novaQuantidade, id]);
+        await registrarMovimentacao(tx, { recurso: tabela, item, quantidadeAnterior: item.quantidade, usuario: req.usuario, ...mov });
+      });
+      res.json(await buscar(id));
+    });
+
+    // Histórico de um item específico
+    router.get('/:id/movimentacoes', async (req, res) => {
+      const id = lerId(req.params.id);
+      res.json(
+        await db.consultar('SELECT * FROM movimentacoes WHERE recurso = ? AND item_id = ? ORDER BY id DESC LIMIT 100', [tabela, id])
+      );
     });
   }
 

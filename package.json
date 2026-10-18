@@ -6,13 +6,16 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node --no-warnings=ExperimentalWarning src/server.js",
-    "dev": "node --no-warnings=ExperimentalWarning --watch src/server.js"
+    "dev": "node --no-warnings=ExperimentalWarning --watch src/server.js",
+    "test": "node --no-warnings=ExperimentalWarning --test",
+    "migrar": "node --no-warnings=ExperimentalWarning scripts/migrar-para-postgres.js"
   },
   "engines": {
     "node": ">=22.13"
   },
   "dependencies": {
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "pg": "^8.23.1"
   },
   "license": "MIT"
 }

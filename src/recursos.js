@@ -39,10 +39,15 @@ export const OPCOES = {
     'Dados e Marcadores',
     'Outro',
   ],
+  // "Cadastro inicial" não aparece aqui: é registrado automaticamente ao cadastrar um item com estoque
+  motivosEntrada: ['Compra', 'Devolução de cliente', 'Ajuste de inventário'],
+  motivosSaida: ['Venda', 'Avaria/Perda', 'Uso interno', 'Ajuste de inventário'],
+  perfis: ['admin', 'vendedor'],
 };
 
 const camposEstoque = {
-  preco: { rotulo: 'Preço', tipo: 'numero', padrao: 0 },
+  preco: { rotulo: 'Preço de venda', tipo: 'numero', padrao: 0 },
+  custo: { rotulo: 'Preço de custo', tipo: 'numero', padrao: 0 },
   quantidade: { rotulo: 'Quantidade', tipo: 'inteiro', padrao: 0 },
   estoque_minimo: { rotulo: 'Estoque mínimo', tipo: 'inteiro', padrao: 0 },
 };
@@ -56,6 +61,10 @@ export const RECURSOS = {
         (SELECT COUNT(*) FROM produtos WHERE colecao_id = t.id) AS total_produtos
       FROM colecoes t`,
     ordem: 't.data_lancamento DESC, t.nome',
+    extras: {
+      total_cartas: { rotulo: 'Cartas', sql: 'total_cartas' },
+      total_produtos: { rotulo: 'Produtos', sql: 'total_produtos' },
+    },
     campos: {
       nome: { rotulo: 'Nome', tipo: 'texto', obrigatorio: true },
       sigla: { rotulo: 'Sigla', tipo: 'texto' },
@@ -65,8 +74,10 @@ export const RECURSOS = {
   },
   cartas: {
     tabela: 'cartas',
+    imagem: true,
     select: `SELECT t.*, c.nome AS colecao_nome FROM cartas t
       LEFT JOIN colecoes c ON c.id = t.colecao_id`,
+    extras: { colecao_nome: { rotulo: 'Coleção', sql: 'c.nome', texto: true } },
     campos: {
       nome: { rotulo: 'Nome', tipo: 'texto', obrigatorio: true },
       colecao_id: { rotulo: 'Coleção', tipo: 'inteiro', obrigatorio: true },
@@ -79,8 +90,10 @@ export const RECURSOS = {
   },
   produtos: {
     tabela: 'produtos',
+    imagem: true,
     select: `SELECT t.*, c.nome AS colecao_nome FROM produtos t
       LEFT JOIN colecoes c ON c.id = t.colecao_id`,
+    extras: { colecao_nome: { rotulo: 'Coleção', sql: 'c.nome', texto: true } },
     campos: {
       nome: { rotulo: 'Nome', tipo: 'texto', obrigatorio: true },
       colecao_id: { rotulo: 'Coleção', tipo: 'inteiro', obrigatorio: true },
@@ -90,6 +103,7 @@ export const RECURSOS = {
   },
   acessorios: {
     tabela: 'acessorios',
+    imagem: true,
     select: 'SELECT t.* FROM acessorios t',
     campos: {
       nome: { rotulo: 'Nome', tipo: 'texto', obrigatorio: true },

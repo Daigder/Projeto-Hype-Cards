@@ -4,15 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hype Cards — Controle de Estoque</title>
+  <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="style.css">
+  <script src="tema.js"></script>
 </head>
 <body>
   <header class="topo">
     <div class="marca">
-      <span class="pokebola" aria-hidden="true"></span>
+      <img class="logo" src="logo.png" alt="Logo Hype Cards">
       <div>
         <h1>Hype Cards</h1>
         <small>Controle de estoque Pokémon TCG</small>
+      </div>
+      <div class="area-usuario">
+        <span id="nome-usuario" class="nome-usuario"></span>
+        <button id="btn-backup" class="btn-topo" type="button" data-admin hidden title="Baixar cópia do banco de dados e das imagens">⬇ Backup</button>
+        <button id="btn-senha" class="btn-topo" type="button">Alterar senha</button>
+        <button id="btn-sair" class="btn-topo" type="button">Sair</button>
+        <button id="btn-tema" class="btn-topo" type="button"></button>
       </div>
     </div>
     <nav id="abas">
@@ -21,39 +30,100 @@
       <button data-aba="cartas">Cartas</button>
       <button data-aba="produtos">Produtos</button>
       <button data-aba="acessorios">Acessórios</button>
+      <button data-aba="movimentacoes">Movimentações</button>
+      <button data-aba="usuarios" data-admin hidden>Usuários</button>
     </nav>
   </header>
 
   <main>
+    <!-- ---------- Resumo ---------- -->
     <section id="secao-resumo">
       <div class="cards" id="cards-resumo"></div>
-      <h2>Itens com estoque baixo</h2>
-      <div class="tabela-wrap">
-        <table>
-          <thead><tr><th>Item</th><th>Categoria</th><th>Quantidade</th><th>Mínimo</th></tr></thead>
-          <tbody id="tabela-baixo"></tbody>
-        </table>
+      <div class="duas-colunas">
+        <div>
+          <h2>Mais vendidos no mês</h2>
+          <div class="tabela-wrap">
+            <table>
+              <thead><tr><th>Item</th><th>Categoria</th><th>Unidades</th><th>Faturamento</th></tr></thead>
+              <tbody id="tabela-vendidos"></tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <h2>Itens com estoque baixo</h2>
+          <div class="tabela-wrap">
+            <table>
+              <thead><tr><th>Foto</th><th>Item</th><th>Categoria</th><th>Qtd.</th><th>Mín.</th></tr></thead>
+              <tbody id="tabela-baixo"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
+    <!-- ---------- Cadastros (coleções, cartas, produtos, acessórios, usuários) ---------- -->
     <section id="secao-lista" hidden>
       <div class="barra">
         <h2 id="titulo-lista"></h2>
         <input id="busca" type="search" placeholder="Buscar por nome...">
         <select id="filtro-colecao"></select>
         <label class="check" id="rotulo-baixo"><input type="checkbox" id="filtro-baixo"> Só estoque baixo</label>
-        <button id="btn-novo" class="primario">+ Novo</button>
+        <div class="alternador" id="alternador-visao" role="group" aria-label="Modo de visualização">
+          <button type="button" data-visao="tabela" title="Ver como tabela">☰ Tabela</button>
+          <button type="button" data-visao="grade" title="Ver como vitrine com fotos">▦ Grade</button>
+        </div>
+        <a id="btn-exportar" class="botao" title="Baixar a lista atual (com os filtros) em CSV, abre no Excel">⬇ CSV</a>
+        <button id="btn-novo" class="primario" data-admin hidden>+ Novo</button>
       </div>
-      <div class="tabela-wrap">
+      <div class="tabela-wrap" id="visao-tabela">
         <table>
           <thead id="cabecalho"></thead>
           <tbody id="corpo"></tbody>
         </table>
       </div>
+      <div class="grade" id="visao-grade" hidden></div>
       <p id="vazio" class="vazio" hidden>Nenhum registro encontrado.</p>
+      <div class="paginacao" id="paginacao"></div>
+    </section>
+
+    <!-- ---------- Histórico de movimentações ---------- -->
+    <section id="secao-movimentacoes" hidden>
+      <div class="barra">
+        <h2>Movimentações</h2>
+        <input id="mov-busca" type="search" placeholder="Buscar item...">
+        <select id="mov-recurso">
+          <option value="">Todos os tipos</option>
+          <option value="cartas">Cartas</option>
+          <option value="produtos">Produtos</option>
+          <option value="acessorios">Acessórios</option>
+        </select>
+        <select id="mov-operacao">
+          <option value="">Entradas e saídas</option>
+          <option value="entrada">Só entradas</option>
+          <option value="saida">Só saídas</option>
+        </select>
+        <select id="mov-motivo"></select>
+        <label class="data-filtro">De <input id="mov-de" type="date"></label>
+        <label class="data-filtro">Até <input id="mov-ate" type="date"></label>
+        <a id="btn-exportar-mov" class="botao" title="Baixar o histórico filtrado em CSV">⬇ CSV</a>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th><th>Item</th><th>Operação</th><th>Motivo</th><th>Qtd.</th>
+              <th>Estoque</th><th>Valor unit.</th><th>Total</th><th>Usuário</th><th>Observação</th>
+            </tr>
+          </thead>
+          <tbody id="corpo-mov"></tbody>
+        </table>
+      </div>
+      <p id="vazio-mov" class="vazio" hidden>Nenhuma movimentação encontrada.</p>
+      <div class="paginacao" id="paginacao-mov"></div>
     </section>
   </main>
 
+  <!-- Cadastro/edição -->
   <dialog id="modal">
     <form id="form" novalidate>
       <h3 id="titulo-form"></h3>
@@ -64,6 +134,85 @@
         <button type="submit" class="primario">Salvar</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- Entrada/saída de estoque -->
+  <dialog id="dlg-movimentar">
+    <form id="form-movimentar" novalidate>
+      <h3>Movimentar estoque</h3>
+      <p class="item-movimentado"><strong id="mov-item-nome"></strong> <span id="mov-item-estoque"></span></p>
+      <div class="alternador largo" role="radiogroup" aria-label="Operação">
+        <label><input type="radio" name="operacao" value="entrada"> ⬆ Entrada</label>
+        <label><input type="radio" name="operacao" value="saida"> ⬇ Saída</label>
+      </div>
+      <div class="campos">
+        <label>Motivo
+          <select name="motivo" id="mov-form-motivo"></select>
+        </label>
+        <label>Quantidade
+          <input name="quantidade" type="number" min="1" step="1" value="1" required>
+        </label>
+        <label class="largo" id="rotulo-valor-unitario"><span id="texto-valor-unitario">Valor unitário (R$)</span>
+          <input name="preco_unitario" type="number" min="0" step="0.01">
+        </label>
+        <label class="largo">Observação (opcional)
+          <textarea name="observacao" rows="2" maxlength="300" placeholder="Ex.: nota fiscal 123, cliente João..."></textarea>
+        </label>
+      </div>
+      <p class="previa-movimento" id="previa-movimento"></p>
+      <p id="erro-movimentar" class="erro"></p>
+      <div class="acoes">
+        <button type="button" data-fechar>Cancelar</button>
+        <button type="submit" class="primario">Confirmar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Histórico de um item -->
+  <dialog id="dlg-historico" class="largo-dialogo">
+    <h3 id="titulo-historico"></h3>
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Data</th><th>Operação</th><th>Motivo</th><th>Qtd.</th><th>Estoque</th><th>Valor unit.</th><th>Usuário</th></tr></thead>
+        <tbody id="corpo-historico"></tbody>
+      </table>
+    </div>
+    <div class="acoes"><button type="button" data-fechar>Fechar</button></div>
+  </dialog>
+
+  <!-- Confirmação (substitui o confirm() do navegador) -->
+  <dialog id="dlg-confirmar" class="dialogo-pequeno">
+    <form method="dialog">
+      <h3 id="confirmar-titulo"></h3>
+      <p id="confirmar-mensagem"></p>
+      <div class="acoes">
+        <button value="nao">Cancelar</button>
+        <button value="sim" class="primario" id="confirmar-ok"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Troca de senha -->
+  <dialog id="dlg-senha" class="dialogo-pequeno">
+    <form id="form-senha" novalidate>
+      <h3>Alterar senha</h3>
+      <p id="aviso-senha" class="aviso-senha" hidden>Por segurança, defina uma nova senha para continuar.</p>
+      <div class="campos uma-coluna">
+        <label>Senha atual <input name="senha_atual" type="password" autocomplete="current-password" required></label>
+        <label>Nova senha (mínimo 6 caracteres) <input name="nova_senha" type="password" autocomplete="new-password" minlength="6" required></label>
+        <label>Repita a nova senha <input name="confirmacao" type="password" autocomplete="new-password" required></label>
+      </div>
+      <p id="erro-senha" class="erro"></p>
+      <div class="acoes">
+        <button type="button" id="btn-cancelar-senha" data-fechar>Cancelar</button>
+        <button type="submit" class="primario">Salvar senha</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="visualizador" class="visualizador" title="Clique para fechar">
+    <img id="imagem-ampliada" alt="">
+    <p id="legenda-imagem"></p>
   </dialog>
 
   <div id="aviso" class="aviso" hidden></div>
