@@ -85,6 +85,24 @@ A lista completa (18 requisitos funcionais e 12 não funcionais), com os diagram
 
 ## 🔧 Tecnologias Utilizadas
 
+<p align="center">
+  <a href="https://nodejs.org/"><img src="https://skillicons.dev/icons?i=nodejs" height="48" alt="Node.js" title="Node.js"/></a>
+  <a href="https://expressjs.com/"><img src="https://skillicons.dev/icons?i=express" height="48" alt="Express" title="Express"/></a>
+  <a href="https://www.postgresql.org/"><img src="https://skillicons.dev/icons?i=postgres" height="48" alt="PostgreSQL" title="PostgreSQL"/></a>
+  <a href="https://www.sqlite.org/"><img src="https://skillicons.dev/icons?i=sqlite" height="48" alt="SQLite" title="SQLite"/></a>
+  <a href="https://developer.mozilla.org/pt-BR/docs/Web/HTML"><img src="https://skillicons.dev/icons?i=html" height="48" alt="HTML5" title="HTML5"/></a>
+  <a href="https://developer.mozilla.org/pt-BR/docs/Web/CSS"><img src="https://skillicons.dev/icons?i=css" height="48" alt="CSS3" title="CSS3"/></a>
+  <a href="https://developer.mozilla.org/pt-BR/docs/Web/JavaScript"><img src="https://skillicons.dev/icons?i=js" height="48" alt="JavaScript" title="JavaScript"/></a>
+  <a href="https://www.npmjs.com/"><img src="https://skillicons.dev/icons?i=npm" height="48" alt="npm" title="npm"/></a>
+</p>
+
+<p align="center">
+  <b>Ferramentas:</b><br>
+  <a href="https://git-scm.com/"><img src="https://skillicons.dev/icons?i=git" height="40" alt="Git" title="Git"/></a>
+  <a href="https://github.com/"><img src="https://skillicons.dev/icons?i=github" height="40" alt="GitHub" title="GitHub"/></a>
+  <a href="https://code.visualstudio.com/"><img src="https://skillicons.dev/icons?i=vscode" height="40" alt="VS Code" title="VS Code"/></a>
+</p>
+
 - **Backend:** Node.js 22+ com Express 5
 - **Banco de Dados:** PostgreSQL (ou SQLite, sem precisar instalar nada)
 - **Frontend:** HTML, CSS e JavaScript puros
