@@ -17,20 +17,20 @@ export async function calcularResumo(db) {
     ).join(' UNION ALL ') + ' ORDER BY quantidade, nome'
   );
 
-  const doMes = `motivo = 'Venda' AND criado_em >= ${db.sql.inicioDoMes}`;
+  const doMes = `v.situacao = 'concluida' AND v.criado_em >= ${db.sql.inicioDoMes}`;
   const vendasMes = db.um(
     `SELECT COUNT(*) AS vendas,
-            COALESCE(SUM(quantidade), 0) AS unidades,
-            COALESCE(SUM(quantidade * preco_unitario), 0) AS faturamento,
-            COALESCE(SUM(quantidade * (preco_unitario - COALESCE(custo_unitario, 0))), 0) AS lucro
-     FROM movimentacoes WHERE ${doMes}`
+            COALESCE((SELECT SUM(vi.quantidade) FROM venda_itens vi JOIN vendas v ON v.id = vi.venda_id WHERE ${doMes}), 0) AS unidades,
+            COALESCE(SUM(v.total), 0) AS faturamento,
+            COALESCE(SUM(v.total - v.custo_total), 0) AS lucro
+     FROM vendas v WHERE ${doMes}`
   );
 
   const maisVendidos = db.consultar(
-    `SELECT recurso, item_id, MAX(item_nome) AS nome,
-            SUM(quantidade) AS unidades, SUM(quantidade * preco_unitario) AS faturamento
-     FROM movimentacoes WHERE ${doMes}
-     GROUP BY recurso, item_id ORDER BY unidades DESC, faturamento DESC LIMIT 5`
+    `SELECT vi.recurso, vi.item_id, MAX(vi.item_nome) AS nome,
+            SUM(vi.quantidade) AS unidades, SUM(vi.total) AS faturamento
+     FROM venda_itens vi JOIN vendas v ON v.id = vi.venda_id WHERE ${doMes}
+     GROUP BY vi.recurso, vi.item_id ORDER BY unidades DESC, faturamento DESC LIMIT 5`
   );
 
   const [colecoes, cartas, produtos, acessorios, ...resto] = await Promise.all([

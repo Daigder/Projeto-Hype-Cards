@@ -1,6 +1,8 @@
 # 🃏 Hype Cards — Controle de Estoque Pokémon TCG ⚡
 
-Este projeto é um sistema web para controlar o estoque de uma loja de produtos **Pokémon TCG** (Trading Card Game). Ele permite cadastrar **coleções**, **cartas avulsas**, **produtos selados** (boosters, ETBs, displays) e **acessórios** (sleeves, deck boxes, pastas), registrar cada entrada, saída e venda com data, valor e responsável, e acompanhar o faturamento e o lucro do mês. É ideal para lojas e colecionadores que querem sair das planilhas e ter controle real do estoque.
+[![Testes](https://github.com/Daigder/Projeto-Hype-Cards/actions/workflows/testes.yml/badge.svg)](https://github.com/Daigder/Projeto-Hype-Cards/actions/workflows/testes.yml)
+
+Este projeto é um sistema web para controlar o estoque de uma loja de produtos **Pokémon TCG** (Trading Card Game). Ele permite cadastrar **coleções**, **cartas avulsas**, **produtos selados** (boosters, ETBs, displays) e **acessórios** (sleeves, deck boxes, pastas), registrar vendas com carrinho, desconto e recibo, controlar cada entrada e saída do estoque e acompanhar faturamento e lucro em relatórios com gráficos. É ideal para lojas e colecionadores que querem sair das planilhas e ter controle real do estoque.
 
 ---
 ## Imagem da Página Inicial do Projeto
@@ -14,23 +16,32 @@ Este projeto é um sistema web para controlar o estoque de uma loja de produtos 
    - Preço de venda, preço de custo, quantidade e estoque mínimo por item.
    - Edição e exclusão de itens.
 
-2. **Movimentações e Vendas**
+2. **Vendas**
+   - Carrinho com vários itens (cartas, produtos e acessórios na mesma venda), busca rápida e controle de quantidade pelo estoque disponível.
+   - Desconto em **%** ou em **R$**, repartido entre os itens para o lucro de cada um continuar correto.
+   - Forma de pagamento: Pix, dinheiro, cartão de débito ou de crédito.
+   - **Recibo** da venda para imprimir ou copiar e enviar ao cliente (WhatsApp, e-mail).
+   - **Estorno** em um clique: os itens voltam para o estoque e a venda fica marcada como estornada, sem apagar o histórico.
+   - A venda é tudo ou nada: se faltar saldo de um item, nada é gravado.
+
+3. **Movimentações**
    - Registro de entradas (compra, devolução, ajuste) e saídas (venda, avaria, uso interno, ajuste).
    - Prévia do saldo antes de confirmar (ex.: *Estoque: 6 → 4 · Total: R$ 90,00*).
-   - Histórico completo com data, motivo, valor e usuário responsável.
+   - Histórico completo com data, motivo, valor e usuário responsável, ligado à venda de origem.
    - O estoque nunca fica negativo, mesmo com duas vendas ao mesmo tempo.
 
-3. **Painel de Resumo**
-   - Vendas, lucro e margem do mês.
-   - Valor e custo do estoque e lucro potencial.
-   - Itens mais vendidos e alerta de estoque baixo.
+4. **Resumo e Relatórios**
+   - Painel com vendas, lucro e margem do mês, valor do estoque e alerta de estoque baixo.
+   - Relatórios por período (12 meses, ano, mês, 30 dias ou personalizado), por mês ou por dia.
+   - Gráficos de faturamento e lucro, faturamento por categoria e por forma de pagamento.
+   - Ticket médio, descontos concedidos, estornos e ranking dos itens que mais vendem.
 
-4. **Busca e Relatórios**
+5. **Busca e Exportação**
    - Busca por nome e filtros por coleção, estoque baixo, tipo de item, motivo e período.
    - Ordenação por coluna, paginação e visualização em tabela ou em grade com fotos.
    - Exportação das listas e do histórico para CSV (abre direto no Excel).
 
-5. **Usuários e Segurança**
+6. **Usuários e Segurança**
    - Login com dois perfis: **administrador** (acesso total) e **vendedor** (consulta e movimenta o estoque).
    - Senhas criptografadas, troca obrigatória no primeiro acesso e bloqueio após 5 tentativas erradas.
    - Backup em um clique: um arquivo ZIP com o banco de dados e todas as fotos.
@@ -42,17 +53,22 @@ Este projeto é um sistema web para controlar o estoque de uma loja de produtos 
 
 O sistema segue a arquitetura **cliente-servidor em camadas**:
 
-- **Interface (`public/`):** telas em HTML, CSS e JavaScript que conversam com a API.
-- **API (`src/`):** servidor Express com as regras de negócio: cadastros, movimentações, login, resumo, CSV e backup.
+- **Interface (`public/`):** telas em HTML, CSS e JavaScript, com o código dividido em módulos por tela (`public/js/`).
+- **API (`src/`):** servidor Express com as regras de negócio: cadastros, vendas, movimentações, relatórios, login, CSV e backup.
 - **Acesso a dados (`src/banco/`):** a mesma interface para **PostgreSQL** ou **SQLite**, escolhida pelo arquivo `.env`.
 
 ```
-├── public/        # Telas: sistema, login, tema claro/escuro
+├── .github/workflows/  # Testes automáticos no GitHub a cada push
+├── public/
+│   ├── js/        # Módulos da interface: vendas, relatórios, gráficos, cadastros...
+│   └── ...        # Telas de login e do sistema, estilos e tema claro/escuro
 ├── src/
 │   ├── banco/     # Acesso ao PostgreSQL e ao SQLite
 │   ├── app.js     # Monta a API e as rotas
 │   ├── auth.js    # Login, sessões, perfis e usuários
 │   ├── crud.js    # Cadastros, ordenação, paginação e imagens
+│   ├── vendas.js  # Carrinho, desconto, estorno e recibo
+│   ├── relatorios.js # Relatórios por período
 │   └── ...        # Movimentações, resumo, CSV, backup
 ├── scripts/       # Migração do SQLite para o PostgreSQL
 ├── test/          # Testes automatizados da API
@@ -69,17 +85,19 @@ O sistema segue a arquitetura **cliente-servidor em camadas**:
 - **Cartas:** coleção, número, raridade, condição, idioma, preços, quantidade, estoque mínimo e foto.
 - **Produtos selados:** coleção, tipo, preços, quantidade, estoque mínimo e foto.
 - **Acessórios:** categoria, marca, preços, quantidade, estoque mínimo e foto.
-- **Movimentações:** item, operação, motivo, quantidade, valor, usuário e data.
+- **Vendas:** itens, quantidades, preços, desconto, total, forma de pagamento, cliente, vendedor e situação (concluída ou estornada).
+- **Movimentações:** item, operação, motivo, quantidade, valor, usuário, data e venda de origem.
 - **Usuários:** nome, login, perfil e senha (guardada só como hash).
 
 ### Funcionalidades
 
 - Cadastro, edição e remoção de coleções, cartas, produtos e acessórios.
-- Registro de entradas, saídas e vendas com histórico auditável.
-- Painel com vendas, lucro e alerta de estoque baixo.
+- Vendas com carrinho, desconto, forma de pagamento, recibo e estorno.
+- Registro de entradas e saídas com histórico auditável.
+- Painel do mês e relatórios por período com gráficos.
 - Busca, filtros, exportação CSV e backup.
 
-A lista completa (18 requisitos funcionais e 12 não funcionais), com os diagramas UML e o DER, está na [documentação do projeto](docs/Hype%20Cards%20-%20Documentacao.pdf).
+Os requisitos detalhados, com os diagramas UML e o DER, estão na [documentação do projeto](docs/Hype%20Cards%20-%20Documentacao.pdf).
 
 ---
 
@@ -106,7 +124,7 @@ A lista completa (18 requisitos funcionais e 12 não funcionais), com os diagram
 - **Backend:** Node.js 22+ com Express 5
 - **Banco de Dados:** PostgreSQL (ou SQLite, sem precisar instalar nada)
 - **Frontend:** HTML, CSS e JavaScript puros
-- **Testes:** node:test (18 testes, executados nos dois bancos)
+- **Testes:** node:test (25 testes, executados nos dois bancos) e GitHub Actions rodando tudo a cada push
 - **Gerenciamento de Dependências:** npm
 
 ---
@@ -155,6 +173,7 @@ Para rodar os testes automatizados:
 ```bash
 npm test
 ```
+Os testes também rodam sozinhos no GitHub a cada `push`, no SQLite e num PostgreSQL de teste. O resultado aparece no selo **Testes** no topo deste README e na aba **Actions** do repositório.
 
 ## 🖥️ Telas da Aplicação
 
@@ -164,20 +183,38 @@ npm test
 2. **Página de Resumo**
    - Painel com vendas e lucro do mês, valor e custo do estoque, itens mais vendidos e itens com estoque baixo.
 
-3. **Páginas de Coleções, Cartas, Produtos e Acessórios**
+3. **Página Vender**
+   - Busca de itens nas três categorias, carrinho com quantidades e preços, desconto, forma de pagamento e cliente.
+
+   ![Tela de venda com o catálogo à esquerda e o carrinho com desconto à direita](docs/imagens/tela-carrinho.png)
+
+4. **Recibo e Estorno**
+   - Recibo da venda para imprimir ou copiar; o administrador pode estornar a venda, devolvendo os itens ao estoque.
+
+   ![Recibo de venda com itens, subtotal, desconto e total](docs/imagens/tela-recibo.png)
+
+5. **Página de Vendas**
+   - Lista de vendas com filtros por número, cliente, forma de pagamento, situação e período.
+
+6. **Página de Relatórios**
+   - Indicadores, gráficos de faturamento e lucro, vendas por categoria e por forma de pagamento, e ranking dos itens.
+
+   ![Relatórios com indicadores e gráfico de faturamento e lucro por dia](docs/imagens/tela-relatorios.png)
+
+7. **Páginas de Coleções, Cartas, Produtos e Acessórios**
    - Cadastro, edição e exclusão de itens com foto, busca, filtros, ordenação, paginação e visualização em tabela ou grade.
 
    ![Cartas na visualização em grade, com foto, preço e controle de estoque](docs/imagens/tela-cartas.png)
 
-4. **Janela de Movimentação**
-   - Registro de entrada ou saída com motivo, quantidade, valor e prévia do saldo antes de confirmar.
+8. **Janela de Movimentação**
+   - Registro rápido de entrada ou saída com motivo, quantidade, valor e prévia do saldo antes de confirmar.
 
    ![Janela de movimentação registrando a venda de uma carta](docs/imagens/tela-venda.png)
 
-5. **Página de Movimentações**
-   - Histórico completo de entradas e saídas com filtros por item, tipo, operação, motivo e período, e exportação para CSV.
+9. **Página de Movimentações**
+   - Histórico completo de entradas e saídas com filtros e exportação para CSV; cada venda tem um link para o seu recibo.
 
-6. **Página de Usuários** *(somente administrador)*
+10. **Página de Usuários** *(somente administrador)*
    - Cadastro de vendedores e administradores, redefinição de senha e desativação de acesso.
 
 ## 📄 Documentação
@@ -199,4 +236,4 @@ npm test
 </table>
 
 ## 📌 Considerações Finais
-Este projeto tem como objetivo não apenas controlar o estoque, mas também dar ao lojista uma visão clara das vendas e do lucro, com segurança e rastreabilidade em cada movimentação. Desenvolvido com uma arquitetura em camadas, que funciona tanto com PostgreSQL quanto com SQLite, o sistema pode ser facilmente ampliado com novas funcionalidades, como emissão de recibos, cadastro de clientes e fornecedores e relatórios por período.
+Este projeto tem como objetivo não apenas controlar o estoque, mas também dar ao lojista uma visão clara das vendas e do lucro, com segurança e rastreabilidade em cada movimentação. Desenvolvido com uma arquitetura em camadas, que funciona tanto com PostgreSQL quanto com SQLite, o sistema pode ser facilmente ampliado com novas funcionalidades, como cadastro de clientes e fornecedores, emissão de nota fiscal e integração com uma loja virtual.

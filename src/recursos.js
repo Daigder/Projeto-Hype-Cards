@@ -41,6 +41,8 @@ export const OPCOES = {
   motivosEntrada: ['Compra', 'Devolução de cliente', 'Ajuste de inventário'],
   motivosSaida: ['Venda', 'Avaria/Perda', 'Uso interno', 'Ajuste de inventário'],
   perfis: ['admin', 'vendedor'],
+  formasPagamento: ['Pix', 'Dinheiro', 'Cartão de débito', 'Cartão de crédito'],
+  motivosSistema: ['Cadastro inicial', 'Estorno de venda'],
 };
 
 const camposEstoque = {

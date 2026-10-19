@@ -4,6 +4,7 @@ import path from 'node:path';
 import { gerarCsv, enviarCsv } from './csv.js';
 import { registrarMovimentacao, validarMovimentacao } from './movimentacoes.js';
 import { ErroHttp, lerId, lerPaginacao } from './http.js';
+import { registrarVenda } from './vendas.js';
 
 export { ErroHttp, lerId, lerPaginacao };
 
@@ -203,6 +204,16 @@ export function criarRotasCrud(db, recurso, { pastaImagens, exigirAdmin }) {
   if (temEstoque) {
     router.patch('/:id/estoque', async (req, res) => {
       const id = lerId(req.params.id);
+      if (req.body?.operacao === 'saida' && req.body?.motivo === 'Venda') {
+        const observacao = req.body.observacao ? String(req.body.observacao).trim().slice(0, 300) : null;
+        await registrarVenda(
+          db,
+          { ...req.body, itens: [{ recurso: tabela, item_id: id, quantidade: req.body.quantidade, preco_unitario: req.body.preco_unitario }] },
+          req.usuario,
+          { formaOpcional: true, observacaoMovimento: observacao }
+        );
+        return res.json(await buscar(id));
+      }
       await db.transacao(async (tx) => {
         const item = await buscar(id, tx, true);
         const mov = validarMovimentacao(req.body, item);

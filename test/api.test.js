@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import pg from 'pg';
 import { criarApp } from '../src/app.js';
+import { converterVendasAntigas } from '../src/db.js';
 
 try {
   process.loadEnvFile();
@@ -36,7 +37,7 @@ async function prepararPostgres(url) {
 
   const banco = new pg.Client({ connectionString: url });
   await banco.connect();
-  await banco.query('DROP TABLE IF EXISTS movimentacoes, sessoes, usuarios, cartas, produtos, acessorios, colecoes CASCADE');
+  await banco.query('DROP TABLE IF EXISTS venda_itens, vendas, movimentacoes, sessoes, usuarios, cartas, produtos, acessorios, colecoes CASCADE');
   await banco.end();
 }
 
@@ -302,6 +303,133 @@ for (const banco of BANCOS) {
       assert.equal(r.headers.get('content-type'), 'application/zip');
       assert.equal(r.dados.subarray(0, 2).toString(), 'PK');
       assert.ok(r.dados.includes(Buffer.from(banco.arquivoBackup)));
+    });
+
+    const hojeIso = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+    let acessorioVenda, cartaVenda, vendaCarrinho;
+
+    test('venda com vários itens aplica desconto, baixa o estoque e agrupa o histórico', async () => {
+      acessorioVenda = (await admin('/api/acessorios', { method: 'POST', body: { nome: 'Sleeves Teste', categoria: 'Sleeves', preco: 20, custo: 10, quantidade: 10, estoque_minimo: 1 } })).dados;
+      cartaVenda = (await admin('/api/cartas', { method: 'POST', body: { nome: 'Carta Teste', colecao_id: 1, preco: 100, custo: 60, quantidade: 3, estoque_minimo: 0 } })).dados;
+
+      const r = await admin('/api/vendas', {
+        method: 'POST',
+        body: {
+          itens: [
+            { recurso: 'acessorios', item_id: acessorioVenda.id, quantidade: 2 },
+            { recurso: 'cartas', item_id: cartaVenda.id, quantidade: 1 },
+          ],
+          desconto: { tipo: 'percentual', valor: 10 },
+          forma_pagamento: 'Pix',
+          cliente: 'João',
+        },
+      });
+      assert.equal(r.status, 201);
+      vendaCarrinho = r.dados;
+      assert.equal(vendaCarrinho.subtotal, 140);
+      assert.equal(vendaCarrinho.desconto, 14);
+      assert.equal(vendaCarrinho.total, 126);
+      assert.equal(vendaCarrinho.custo_total, 80);
+      assert.equal(vendaCarrinho.itens.length, 2);
+      assert.equal(vendaCarrinho.itens.reduce((s, i) => s + i.desconto, 0), 14);
+      assert.equal((await admin(`/api/acessorios/${acessorioVenda.id}`)).dados.quantidade, 8);
+      assert.equal((await admin(`/api/cartas/${cartaVenda.id}`)).dados.quantidade, 2);
+
+      const movimentos = (await admin('/api/movimentacoes?motivo=Venda')).dados.filter((m) => m.venda_id === vendaCarrinho.id);
+      assert.equal(movimentos.length, 2);
+      const totalMovimentos = movimentos.reduce((s, m) => s + m.preco_unitario * m.quantidade, 0);
+      assert.ok(Math.abs(totalMovimentos - 126) < 0.001);
+    });
+
+    test('falta de saldo em um item cancela a venda inteira', async () => {
+      const antes = Number((await admin('/api/vendas')).headers.get('x-total-count'));
+      const r = await admin('/api/vendas', {
+        method: 'POST',
+        body: {
+          itens: [
+            { recurso: 'acessorios', item_id: acessorioVenda.id, quantidade: 1 },
+            { recurso: 'cartas', item_id: cartaVenda.id, quantidade: 5 },
+          ],
+          forma_pagamento: 'Dinheiro',
+        },
+      });
+      assert.equal(r.status, 400);
+      assert.match(r.dados.erro, /Carta Teste/);
+      assert.equal((await admin(`/api/acessorios/${acessorioVenda.id}`)).dados.quantidade, 8);
+      assert.equal(Number((await admin('/api/vendas')).headers.get('x-total-count')), antes);
+    });
+
+    test('validações da venda: carrinho vazio, pagamento e desconto', async () => {
+      const item = [{ recurso: 'acessorios', item_id: acessorioVenda.id, quantidade: 1 }];
+      assert.equal((await admin('/api/vendas', { method: 'POST', body: { itens: [], forma_pagamento: 'Pix' } })).status, 400);
+      assert.equal((await admin('/api/vendas', { method: 'POST', body: { itens: item, forma_pagamento: 'Cheque' } })).status, 400);
+      assert.equal((await admin('/api/vendas', { method: 'POST', body: { itens: item, forma_pagamento: 'Pix', desconto: { tipo: 'valor', valor: 999 } } })).status, 400);
+      assert.equal((await admin('/api/vendas', { method: 'POST', body: { itens: item, forma_pagamento: 'Pix', desconto: { tipo: 'percentual', valor: 120 } } })).status, 400);
+    });
+
+    test('catálogo da venda busca nas três categorias', async () => {
+      const r = await admin('/api/vendas/catalogo?busca=teste');
+      assert.equal(r.status, 200);
+      assert.deepEqual(r.dados.map((i) => i.recurso).sort(), ['acessorios', 'cartas']);
+    });
+
+    test('estorno devolve o estoque, só o admin pode e não pode repetir', async () => {
+      assert.equal((await vendedor(`/api/vendas/${vendaCarrinho.id}/estorno`, { method: 'POST', body: {} })).status, 403);
+
+      const r = await admin(`/api/vendas/${vendaCarrinho.id}/estorno`, { method: 'POST', body: { motivo: 'Cliente desistiu' } });
+      assert.equal(r.status, 200);
+      assert.equal(r.dados.situacao, 'estornada');
+      assert.equal(r.dados.motivo_estorno, 'Cliente desistiu');
+      assert.equal((await admin(`/api/acessorios/${acessorioVenda.id}`)).dados.quantidade, 10);
+      assert.equal((await admin(`/api/cartas/${cartaVenda.id}`)).dados.quantidade, 3);
+
+      const estornos = (await admin('/api/movimentacoes?motivo=Estorno%20de%20venda')).dados.filter((m) => m.venda_id === vendaCarrinho.id);
+      assert.equal(estornos.length, 2);
+      assert.equal((await admin(`/api/vendas/${vendaCarrinho.id}/estorno`, { method: 'POST', body: {} })).status, 400);
+    });
+
+    test('vendedor registra venda e o relatório soma só as vendas concluídas', async () => {
+      const venda = await vendedor('/api/vendas', {
+        method: 'POST',
+        body: { itens: [{ recurso: 'acessorios', item_id: acessorioVenda.id, quantidade: 3 }], forma_pagamento: 'Dinheiro', desconto: { tipo: 'valor', valor: 5 } },
+      });
+      assert.equal(venda.status, 201);
+      assert.equal(venda.dados.total, 55);
+      assert.equal(venda.dados.usuario_nome, 'Ana Vendas');
+
+      const hoje = hojeIso();
+      const r = await admin(`/api/relatorios?de=${hoje}&ate=${hoje}&agrupar=dia`);
+      assert.equal(r.status, 200);
+      assert.equal(r.dados.serie.length, 1);
+      assert.ok(Math.abs(r.dados.serie[0].faturamento - r.dados.totais.faturamento) < 0.001);
+      assert.ok(r.dados.estornos.quantidade >= 1);
+      const dinheiro = r.dados.pagamentos.find((p) => p.forma_pagamento === 'Dinheiro');
+      assert.ok(dinheiro && dinheiro.faturamento >= 55);
+      assert.ok(r.dados.categorias.some((c) => c.recurso === 'acessorios'));
+      assert.ok(!r.dados.maisVendidos.some((i) => i.nome === 'Carta Teste'));
+
+      const meses = await admin('/api/relatorios');
+      assert.equal(meses.dados.serie.length, 12);
+      assert.equal((await admin('/api/relatorios?de=2026-01-01&ate=2026-12-31&agrupar=dia')).status, 400);
+    });
+
+    test('vendas antigas, sem registro de venda, são convertidas', async () => {
+      const antes = Number((await admin('/api/vendas')).headers.get('x-total-count'));
+      await db.executar(
+        `INSERT INTO movimentacoes (recurso, item_id, item_nome, operacao, motivo, quantidade, quantidade_anterior, quantidade_nova, preco_unitario, custo_unitario)
+         VALUES ('cartas', ?, 'Carta Teste', 'saida', 'Venda', 1, 3, 2, 90, 60)`,
+        [cartaVenda.id]
+      );
+      assert.equal(await converterVendasAntigas(db), 1);
+      assert.equal(Number((await admin('/api/vendas')).headers.get('x-total-count')), antes + 1);
+      const ultima = (await admin('/api/vendas?pagina=1&por_pagina=1')).dados[0];
+      const detalhe = (await admin(`/api/vendas/${ultima.id}`)).dados;
+      assert.equal(detalhe.forma_pagamento, 'Não informada');
+      assert.equal(detalhe.total, 90);
+      assert.equal(await converterVendasAntigas(db), 0);
     });
 
     test('logout encerra a sessão', async () => {

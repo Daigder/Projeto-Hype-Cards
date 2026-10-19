@@ -8,6 +8,9 @@ const DIALETOS = {
     inicioDoMes: "date('now', 'localtime', 'start of month')",
     diaSeguinte: (parametro) => `date(${parametro}, '+1 day')`,
     bloquearLinha: '',
+    agora: "datetime('now', 'localtime')",
+    chaveMes: (coluna) => `strftime('%Y-%m', ${coluna})`,
+    chaveDia: (coluna) => `date(${coluna})`,
   },
   postgres: {
     like: 'ILIKE',
@@ -15,6 +18,9 @@ const DIALETOS = {
     inicioDoMes: "date_trunc('month', LOCALTIMESTAMP)",
     diaSeguinte: (parametro) => `(${parametro}::date + 1)`,
     bloquearLinha: ' FOR UPDATE OF t',
+    agora: 'LOCALTIMESTAMP(0)',
+    chaveMes: (coluna) => `to_char(${coluna}, 'YYYY-MM')`,
+    chaveDia: (coluna) => `to_char(${coluna}, 'YYYY-MM-DD')`,
   },
 };
 

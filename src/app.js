@@ -8,6 +8,8 @@ import { criarAutenticacao } from './auth.js';
 import { criarRotasMovimentacoes } from './movimentacoes.js';
 import { calcularResumo } from './resumo.js';
 import { gerarBackup } from './backup.js';
+import { criarRotasVendas } from './vendas.js';
+import { criarRotasRelatorios } from './relatorios.js';
 
 export const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -33,6 +35,8 @@ export async function criarApp({
   app.get('/api/resumo', async (req, res) => res.json(await calcularResumo(db)));
   app.use('/api/movimentacoes', criarRotasMovimentacoes(db));
   app.use('/api/usuarios', rotasUsuarios);
+  app.use('/api/vendas', criarRotasVendas(db, { exigirAdmin }));
+  app.use('/api/relatorios', criarRotasRelatorios(db));
 
   app.get('/api/backup', exigirAdmin, async (req, res) => {
     const zip = await gerarBackup(db, pastaImagens);

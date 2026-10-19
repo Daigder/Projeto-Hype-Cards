@@ -26,6 +26,9 @@
     </div>
     <nav id="abas">
       <button data-aba="resumo" class="ativa">Resumo</button>
+      <button data-aba="vender" class="aba-vender">🛒 Vender</button>
+      <button data-aba="vendas">Vendas</button>
+      <button data-aba="relatorios">Relatórios</button>
       <button data-aba="colecoes">Coleções</button>
       <button data-aba="cartas">Cartas</button>
       <button data-aba="produtos">Produtos</button>
@@ -57,6 +60,116 @@
             </table>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section id="secao-vender" hidden>
+      <div class="venda-layout">
+        <div class="venda-catalogo">
+          <h2>Nova venda</h2>
+          <input id="venda-busca" type="search" placeholder="Buscar carta, produto ou acessório..." autocomplete="off">
+          <ul id="venda-resultados" class="resultados"></ul>
+        </div>
+        <form id="form-venda" class="venda-carrinho" novalidate>
+          <h2>Carrinho <small id="venda-qtd"></small></h2>
+          <div id="venda-itens" class="carrinho-itens"></div>
+          <p id="venda-vazio" class="vazio">Busque um item ao lado e clique em “Adicionar”.</p>
+          <div class="venda-totais">
+            <div class="recibo-linha"><span>Subtotal</span><strong id="venda-subtotal"></strong></div>
+            <div class="recibo-linha linha-desconto">
+              <label for="venda-desconto-valor">Desconto</label>
+              <span class="desconto-campos">
+                <input id="venda-desconto-valor" type="number" min="0" step="0.01" value="0">
+                <select id="venda-desconto-tipo" aria-label="Tipo de desconto"><option value="percentual">%</option><option value="valor">R$</option></select>
+              </span>
+              <strong id="venda-desconto"></strong>
+            </div>
+            <div class="recibo-linha recibo-total"><span>Total</span><strong id="venda-total"></strong></div>
+          </div>
+          <fieldset class="pagamento">
+            <legend>Forma de pagamento</legend>
+            <div id="venda-pagamentos" class="opcoes-pagamento"></div>
+          </fieldset>
+          <div class="campos uma-coluna">
+            <label>Cliente (opcional) <input id="venda-cliente" maxlength="120" autocomplete="off"></label>
+            <label>Observação (opcional) <textarea id="venda-observacao" rows="2" maxlength="300"></textarea></label>
+          </div>
+          <p id="erro-venda" class="erro"></p>
+          <div class="acoes">
+            <button type="button" id="btn-limpar-venda">Limpar</button>
+            <button type="submit" class="primario" id="btn-finalizar">Finalizar venda</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section id="secao-vendas" hidden>
+      <div class="barra">
+        <h2>Vendas</h2>
+        <input id="vendas-busca" type="search" placeholder="Nº da venda ou cliente...">
+        <select id="vendas-pagamento"></select>
+        <select id="vendas-situacao">
+          <option value="">Todas as situações</option>
+          <option value="concluida">Concluídas</option>
+          <option value="estornada">Estornadas</option>
+        </select>
+        <label class="data-filtro">De <input id="vendas-de" type="date"></label>
+        <label class="data-filtro">Até <input id="vendas-ate" type="date"></label>
+        <button id="btn-nova-venda" class="primario" type="button">+ Nova venda</button>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nº</th><th>Data</th><th>Cliente</th><th>Itens</th><th>Pagamento</th><th>Desconto</th>
+              <th>Total</th><th>Vendedor</th><th>Situação</th><th class="acoes-linha"></th>
+            </tr>
+          </thead>
+          <tbody id="corpo-vendas"></tbody>
+        </table>
+      </div>
+      <div class="paginacao" id="paginacao-vendas"></div>
+    </section>
+
+    <section id="secao-relatorios" hidden>
+      <div class="barra">
+        <h2>Relatórios</h2>
+        <select id="rel-periodo" aria-label="Período">
+          <option value="12m">Últimos 12 meses</option>
+          <option value="ano">Este ano</option>
+          <option value="mes">Este mês</option>
+          <option value="30d">Últimos 30 dias</option>
+          <option value="personalizado">Personalizado</option>
+        </select>
+        <label class="data-filtro" id="rel-de-rotulo" hidden>De <input id="rel-de" type="date"></label>
+        <label class="data-filtro" id="rel-ate-rotulo" hidden>Até <input id="rel-ate" type="date"></label>
+        <div class="alternador" id="rel-agrupar" role="group" aria-label="Agrupar">
+          <button type="button" data-agrupar="mes">Por mês</button>
+          <button type="button" data-agrupar="dia">Por dia</button>
+        </div>
+      </div>
+      <p id="rel-legenda" class="legenda-periodo"></p>
+      <div class="cards" id="rel-cards"></div>
+      <div class="painel-grafico">
+        <h3>Faturamento e lucro por período</h3>
+        <div id="rel-grafico-periodo"></div>
+      </div>
+      <div class="duas-colunas">
+        <div class="painel-grafico">
+          <h3>Faturamento por categoria</h3>
+          <div id="rel-grafico-categorias"></div>
+        </div>
+        <div class="painel-grafico">
+          <h3>Formas de pagamento</h3>
+          <div id="rel-grafico-pagamentos"></div>
+        </div>
+      </div>
+      <h3>Itens que mais vendem</h3>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Item</th><th>Categoria</th><th>Unidades</th><th>Faturamento</th></tr></thead>
+          <tbody id="rel-top"></tbody>
+        </table>
       </div>
     </section>
 
@@ -147,6 +260,9 @@
         <label>Quantidade
           <input name="quantidade" type="number" min="1" step="1" value="1" required>
         </label>
+        <label class="largo" id="rotulo-pagamento" hidden>Forma de pagamento
+          <select name="forma_pagamento" id="mov-form-pagamento"></select>
+        </label>
         <label class="largo" id="rotulo-valor-unitario"><span id="texto-valor-unitario">Valor unitário (R$)</span>
           <input name="preco_unitario" type="number" min="0" step="0.01">
         </label>
@@ -172,6 +288,34 @@
       </table>
     </div>
     <div class="acoes"><button type="button" data-fechar>Fechar</button></div>
+  </dialog>
+
+  <dialog id="dlg-recibo" class="dialogo-recibo">
+    <div id="recibo" class="recibo"></div>
+    <p id="erro-recibo" class="erro"></p>
+    <div class="acoes recibo-acoes">
+      <button type="button" id="btn-estornar" class="perigo" hidden>Estornar venda</button>
+      <button type="button" id="btn-copiar-recibo">Copiar texto</button>
+      <button type="button" id="btn-imprimir-recibo">Imprimir</button>
+      <button type="button" class="primario" data-fechar>Fechar</button>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-estorno" class="dialogo-pequeno">
+    <form id="form-estorno" novalidate>
+      <h3>Estornar venda <span id="estorno-numero"></span></h3>
+      <p class="texto-suave">Os itens voltam para o estoque e o valor sai do faturamento. A venda continua no histórico, marcada como estornada.</p>
+      <div class="campos uma-coluna">
+        <label>Motivo do estorno *
+          <textarea name="motivo" rows="2" maxlength="300" required placeholder="Ex.: cliente desistiu, item com defeito..."></textarea>
+        </label>
+      </div>
+      <p id="erro-estorno" class="erro"></p>
+      <div class="acoes">
+        <button type="button" data-fechar>Cancelar</button>
+        <button type="submit" class="primario">Confirmar estorno</button>
+      </div>
+    </form>
   </dialog>
 
   <dialog id="dlg-confirmar" class="dialogo-pequeno">
@@ -209,6 +353,6 @@
 
   <div id="aviso" class="aviso" hidden></div>
 
-  <script type="module" src="app.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

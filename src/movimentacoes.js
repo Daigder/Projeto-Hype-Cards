@@ -40,15 +40,15 @@ export function validarMovimentacao(corpo, item) {
 
 export async function registrarMovimentacao(db, {
   recurso, item, operacao, motivo, quantidade, quantidadeAnterior,
-  precoUnitario = null, custoUnitario = item.custo ?? null, observacao = null, usuario = null,
+  precoUnitario = null, custoUnitario = item.custo ?? null, observacao = null, usuario = null, vendaId = null,
 }) {
   const quantidadeNova = quantidadeAnterior + (operacao === 'entrada' ? quantidade : -quantidade);
   await db.executar(
     `INSERT INTO movimentacoes (recurso, item_id, item_nome, operacao, motivo, quantidade, quantidade_anterior,
-       quantidade_nova, preco_unitario, custo_unitario, observacao, usuario_id, usuario_nome)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       quantidade_nova, preco_unitario, custo_unitario, observacao, usuario_id, usuario_nome, venda_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [recurso, item.id, item.nome, operacao, motivo, quantidade, quantidadeAnterior, quantidadeNova,
-    precoUnitario, custoUnitario, observacao, usuario?.id ?? null, usuario?.nome ?? null]
+    precoUnitario, custoUnitario, observacao, usuario?.id ?? null, usuario?.nome ?? null, vendaId]
   );
 }
 

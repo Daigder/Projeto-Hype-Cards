@@ -8,7 +8,7 @@ try {
   process.loadEnvFile();
 } catch {}
 
-const TABELAS = ['colecoes', 'cartas', 'produtos', 'acessorios', 'usuarios', 'movimentacoes'];
+const TABELAS = ['colecoes', 'cartas', 'produtos', 'acessorios', 'usuarios', 'vendas', 'venda_itens', 'movimentacoes'];
 const substituir = process.argv.includes('--substituir');
 const arquivoSqlite = process.env.DB_ARQUIVO || path.join(RAIZ, 'data', 'hypecards.db');
 
