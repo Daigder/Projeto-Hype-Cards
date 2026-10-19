@@ -79,7 +79,7 @@ O sistema segue a arquitetura **cliente-servidor em camadas**:
 - Painel com vendas, lucro e alerta de estoque baixo.
 - Busca, filtros, exportação CSV e backup.
 
-A lista completa (18 requisitos funcionais e 12 não funcionais), com os diagramas UML e o DER, está na [documentação do projeto](docs/Documentacao-Hype-Cards.pdf).
+A lista completa (18 requisitos funcionais e 12 não funcionais), com os diagramas UML e o DER, está na [documentação do projeto](docs/Hype%20Cards%20-%20Documentacao.pdf).
 
 ---
 
@@ -182,7 +182,7 @@ npm test
 
 ## 📄 Documentação
 
-- [Documentação do projeto (PDF)](docs/Documentacao-Hype-Cards.pdf): requisitos, casos de uso, DER e diagramas de atividade, classes e sequência.
+- [Documentação do projeto (PDF)](docs/Hype%20Cards%20-%20Documentacao.pdf): requisitos, casos de uso, DER e diagramas de atividade, classes e sequência.
 - [Guia técnico](docs/GUIA-TECNICO.md): referência da API REST, modelo de dados, migração para PostgreSQL e backup.
 
 ## 👨‍💻 Desenvolvedor
