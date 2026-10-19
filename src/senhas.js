@@ -1,6 +1,5 @@
 import crypto from 'node:crypto';
 
-// Senhas são guardadas como "scrypt$<salt>$<hash>", nunca em texto puro
 export function gerarHashSenha(senha) {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.scryptSync(String(senha), salt, 64).toString('hex');

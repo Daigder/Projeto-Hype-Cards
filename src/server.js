@@ -1,6 +1,5 @@
 import { criarApp } from './app.js';
 
-// Lê o arquivo .env (se existir). Com DATABASE_URL o sistema usa PostgreSQL; sem ela, SQLite.
 try {
   process.loadEnvFile();
 } catch {}

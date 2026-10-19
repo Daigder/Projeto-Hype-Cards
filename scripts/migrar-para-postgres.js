@@ -1,10 +1,3 @@
-// Copia todos os dados do SQLite (data/hypecards.db) para o PostgreSQL da DATABASE_URL.
-//
-//   npm run migrar                → copia para um PostgreSQL vazio
-//   npm run migrar -- --substituir → apaga o que houver no PostgreSQL e copia de novo
-//
-// As imagens continuam na pasta data/imagens (o banco guarda só o nome do arquivo).
-// As sessões não são copiadas: cada usuário só precisa entrar de novo.
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,7 +8,6 @@ try {
   process.loadEnvFile();
 } catch {}
 
-// A ordem importa: coleções antes dos itens (chave estrangeira)
 const TABELAS = ['colecoes', 'cartas', 'produtos', 'acessorios', 'usuarios', 'movimentacoes'];
 const substituir = process.argv.includes('--substituir');
 const arquivoSqlite = process.env.DB_ARQUIVO || path.join(RAIZ, 'data', 'hypecards.db');
@@ -29,7 +21,6 @@ if (!fs.existsSync(arquivoSqlite)) {
   process.exit(1);
 }
 
-// Abre o SQLite pela própria camada do sistema (aplica as atualizações de esquema), depois lê direto
 const sqliteAtualizado = await abrirBanco({ arquivoSqlite, dadosIniciais: false });
 await sqliteAtualizado.fechar();
 const origem = new DatabaseSync(arquivoSqlite, { readOnly: true });
@@ -51,7 +42,6 @@ try {
         await tx.executarScript(`TRUNCATE ${TABELAS.join(', ')}, sessoes RESTART IDENTITY CASCADE`);
       }
       for (const tabela of TABELAS) {
-        // Copia só as colunas que existem nos dois bancos
         const colunasDestino = (
           await tx.consultar('SELECT column_name FROM information_schema.columns WHERE table_name = ?', [tabela])
         ).map((c) => c.column_name);
@@ -67,7 +57,6 @@ try {
           await tx.executar(inserir, colunas.map((c) => linha[c]));
         }
 
-        // Os ids foram copiados: o próximo id gerado precisa continuar depois do maior
         await tx.consultar(
           `SELECT setval(pg_get_serial_sequence('${tabela}', 'id'), COALESCE(MAX(id), 1), MAX(id) IS NOT NULL) FROM ${tabela}`
         );

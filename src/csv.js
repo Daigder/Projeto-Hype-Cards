@@ -1,4 +1,3 @@
-// Gera CSV no formato que o Excel em português abre direto: separador ";", vírgula decimal e BOM UTF-8
 function formatarValor(valor, tipo) {
   if (valor === null || valor === undefined) return '';
   if (tipo === 'numero' && typeof valor === 'number') return valor.toFixed(2).replace('.', ',');
@@ -6,7 +5,6 @@ function formatarValor(valor, tipo) {
   return /[";\r\n]/.test(texto) ? `"${texto.replaceAll('"', '""')}"` : texto;
 }
 
-// colunas: [{ chave, rotulo, tipo? }]
 export function gerarCsv(linhas, colunas) {
   const cabecalho = colunas.map((c) => formatarValor(c.rotulo)).join(';');
   const corpo = linhas.map((linha) => colunas.map((c) => formatarValor(linha[c.chave], c.tipo)).join(';'));

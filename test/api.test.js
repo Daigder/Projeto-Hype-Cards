@@ -1,6 +1,3 @@
-// Testes da API. Rodam no SQLite (banco temporário) e, se houver DATABASE_URL ou TEST_DATABASE_URL
-// no .env, também no PostgreSQL, usando um banco separado ("hypecards_teste") que é recriado a cada execução.
-// Rodar com: npm test
 import { describe, test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -19,7 +16,6 @@ const PNG_1PX = Buffer.from(
   'base64'
 );
 
-// Nunca usa o banco do sistema: troca o nome do banco da DATABASE_URL por "hypecards_teste"
 function urlBancoDeTeste() {
   if (process.env.TEST_DATABASE_URL) return process.env.TEST_DATABASE_URL;
   if (!process.env.DATABASE_URL) return null;
@@ -28,7 +24,6 @@ function urlBancoDeTeste() {
   return url.toString();
 }
 
-// Cria o banco de teste se não existir e apaga as tabelas deixadas por execuções anteriores
 async function prepararPostgres(url) {
   const nome = decodeURIComponent(new URL(url).pathname.slice(1));
   const urlServidor = new URL(url);
@@ -79,11 +74,10 @@ for (const banco of BANCOS) {
       if (!servidor) return;
       servidor.closeAllConnections();
       await new Promise((ok) => servidor.close(ok));
-      await db.fechar(); // no Windows, o arquivo do SQLite só pode ser apagado depois de fechado
+      await db.fechar();
       fs.rmSync(pasta, { recursive: true, force: true });
     });
 
-    // Cliente HTTP simples que guarda o cookie de sessão, como o navegador faz
     function cliente() {
       let cookie = '';
       const req = async (caminho, { method = 'GET', body, tipo } = {}) => {
@@ -174,7 +168,7 @@ for (const banco of BANCOS) {
     });
 
     test('venda baixa o estoque e fica registrada no histórico com preço e usuário', async () => {
-      const antes = (await admin('/api/cartas/2')).dados; // Mew ex
+      const antes = (await admin('/api/cartas/2')).dados;
       const venda = await admin('/api/cartas/2/estoque', {
         method: 'PATCH',
         body: { operacao: 'saida', motivo: 'Venda', quantidade: 2, preco_unitario: 50, observacao: 'Cliente balcão' },

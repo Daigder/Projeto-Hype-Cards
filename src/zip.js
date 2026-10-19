@@ -1,9 +1,6 @@
 import zlib from 'node:zlib';
 
-// Gerador de arquivo .zip mínimo (sem dependências), suficiente para o backup do sistema.
-// Formato: https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
-
-const JA_COMPRIMIDOS = /\.(png|jpe?g|webp|gif|zip)$/i; // comprimir de novo só gasta tempo
+const JA_COMPRIMIDOS = /\.(png|jpe?g|webp|gif|zip)$/i;
 
 function dataDos(data) {
   return {
@@ -12,7 +9,6 @@ function dataDos(data) {
   };
 }
 
-// arquivos: [{ nome: 'pasta/arquivo.ext', dados: Buffer, data?: Date }]
 export function criarZip(arquivos) {
   const partes = [];
   const central = [];
@@ -28,8 +24,8 @@ export function criarZip(arquivos) {
 
     const local = Buffer.alloc(30);
     local.writeUInt32LE(0x04034b50, 0);
-    local.writeUInt16LE(20, 4); // versão necessária
-    local.writeUInt16LE(0x0800, 6); // nomes em UTF-8
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0x0800, 6);
     local.writeUInt16LE(metodo, 8);
     local.writeUInt16LE(hora, 10);
     local.writeUInt16LE(dia, 12);
@@ -41,8 +37,8 @@ export function criarZip(arquivos) {
 
     const registro = Buffer.alloc(46);
     registro.writeUInt32LE(0x02014b50, 0);
-    registro.writeUInt16LE(20, 4); // criado por
-    registro.writeUInt16LE(20, 6); // versão necessária
+    registro.writeUInt16LE(20, 4);
+    registro.writeUInt16LE(20, 6);
     registro.writeUInt16LE(0x0800, 8);
     registro.writeUInt16LE(metodo, 10);
     registro.writeUInt16LE(hora, 12);

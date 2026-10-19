@@ -7,7 +7,6 @@ import { ErroHttp, lerId, lerPaginacao } from './http.js';
 
 export { ErroHttp, lerId, lerPaginacao };
 
-// Formatos de imagem aceitos e a extensão usada para salvar o arquivo
 const TIPOS_IMAGEM = {
   'image/png': '.png',
   'image/jpeg': '.jpg',
@@ -16,7 +15,6 @@ const TIPOS_IMAGEM = {
 };
 export const TAMANHO_MAX_IMAGEM = '5mb';
 
-// Converte e valida o corpo da requisição de acordo com a definição dos campos
 function validar(corpo, campos) {
   const dados = {};
   for (const [nome, regra] of Object.entries(campos)) {
@@ -50,15 +48,12 @@ function validar(corpo, campos) {
   return dados;
 }
 
-// Cria as rotas de CRUD (listar, buscar, criar, atualizar, excluir) para um recurso.
-// Leitura e movimentação de estoque: qualquer usuário logado. Cadastro, edição e exclusão: só admin.
 export function criarRotasCrud(db, recurso, { pastaImagens, exigirAdmin }) {
   const { tabela, select, campos, extras = {}, ordem = 't.nome', imagem = false } = recurso;
   const router = Router();
   const nomesCampos = Object.keys(campos);
   const temEstoque = 'quantidade' in campos;
 
-  // Colunas que podem ser usadas em ?ordenar= (lista fechada: o valor nunca vai direto para o SQL)
   const ordenaveis = { id: 't.id', criado_em: 't.criado_em' };
   for (const [nome, regra] of Object.entries(campos)) {
     if (nome === 'colecao_id') continue;
@@ -68,7 +63,6 @@ export function criarRotasCrud(db, recurso, { pastaImagens, exigirAdmin }) {
     ordenaveis[nome] = extra.texto ? db.sql.semCaixa(extra.sql) : extra.sql;
   }
 
-  // Colunas do CSV: a coleção sai pelo nome, não pelo id; a imagem não entra
   const colunasCsv = [
     { chave: 'id', rotulo: 'ID' },
     ...nomesCampos.map((nome) =>
@@ -82,14 +76,12 @@ export function criarRotasCrud(db, recurso, { pastaImagens, exigirAdmin }) {
     if (nome) fs.rmSync(path.join(pastaImagens, path.basename(nome)), { force: true });
   };
 
-  // "conexao" permite buscar dentro de uma transação (tx) ou direto no banco (db)
   const buscar = async (id, conexao = db, bloquear = false) => {
     const item = await conexao.um(`${select} WHERE t.id = ?${bloquear ? db.sql.bloquearLinha : ''}`, [id]);
     if (!item) throw new ErroHttp(404, 'Registro não encontrado.');
     return item;
   };
 
-  // Filtros: ?busca=, ?colecao_id=, ?estoque_baixo=1 · Ordem: ?ordenar=preco&direcao=desc
   const montarConsulta = (query) => {
     const filtros = [];
     const params = [];
@@ -115,7 +107,6 @@ export function criarRotasCrud(db, recurso, { pastaImagens, exigirAdmin }) {
     return { where, params, orderBy };
   };
 
-  // READ - lista. O total de registros (sem paginação) vai no cabeçalho X-Total-Count.
   router.get('/', async (req, res) => {
     const { where, params, orderBy } = montarConsulta(req.query);
     const paginacao = lerPaginacao(req.query);
@@ -128,19 +119,16 @@ export function criarRotasCrud(db, recurso, { pastaImagens, exigirAdmin }) {
     res.json(itens);
   });
 
-  // Exporta a lista (com os mesmos filtros e ordem da tela) para CSV
   router.get('/exportar.csv', async (req, res) => {
     const { where, params, orderBy } = montarConsulta(req.query);
     const itens = await db.consultar(`${select}${where} ORDER BY ${orderBy}`, params);
     enviarCsv(res, tabela, gerarCsv(itens, colunasCsv));
   });
 
-  // READ - um registro
   router.get('/:id', async (req, res) => {
     res.json(await buscar(lerId(req.params.id)));
   });
 
-  // CREATE
   router.post('/', exigirAdmin, async (req, res) => {
     const dados = validar(req.body, campos);
     const marcadores = nomesCampos.map(() => '?').join(', ');
@@ -160,7 +148,6 @@ export function criarRotasCrud(db, recurso, { pastaImagens, exigirAdmin }) {
     res.status(201).json(await buscar(id));
   });
 
-  // UPDATE - se a quantidade mudar pela edição, a diferença entra no histórico como ajuste
   router.put('/:id', exigirAdmin, async (req, res) => {
     const id = lerId(req.params.id);
     const dados = validar(req.body, campos);
@@ -180,7 +167,6 @@ export function criarRotasCrud(db, recurso, { pastaImagens, exigirAdmin }) {
     res.json(await buscar(id));
   });
 
-  // DELETE - o histórico de movimentações do item é mantido
   router.delete('/:id', exigirAdmin, async (req, res) => {
     const id = lerId(req.params.id);
     const item = await buscar(id);
@@ -189,7 +175,6 @@ export function criarRotasCrud(db, recurso, { pastaImagens, exigirAdmin }) {
     res.status(204).end();
   });
 
-  // Imagem do item: o corpo da requisição é o próprio arquivo (Content-Type: image/png, image/jpeg...)
   if (imagem) {
     router.put('/:id/imagem', exigirAdmin, express.raw({ type: 'image/*', limit: TAMANHO_MAX_IMAGEM }), async (req, res) => {
       const id = lerId(req.params.id);
@@ -215,13 +200,10 @@ export function criarRotasCrud(db, recurso, { pastaImagens, exigirAdmin }) {
     });
   }
 
-  // Movimentação de estoque, registrada no histórico:
-  // { "operacao": "saida", "motivo": "Venda", "quantidade": 2, "preco_unitario": 40, "observacao": "..." }
   if (temEstoque) {
     router.patch('/:id/estoque', async (req, res) => {
       const id = lerId(req.params.id);
       await db.transacao(async (tx) => {
-        // Trava o item até o fim da transação: duas vendas ao mesmo tempo não leem o mesmo saldo
         const item = await buscar(id, tx, true);
         const mov = validarMovimentacao(req.body, item);
         const novaQuantidade = mov.operacao === 'entrada' ? item.quantidade + mov.quantidade : item.quantidade - mov.quantidade;
@@ -234,7 +216,6 @@ export function criarRotasCrud(db, recurso, { pastaImagens, exigirAdmin }) {
       res.json(await buscar(id));
     });
 
-    // Histórico de um item específico
     router.get('/:id/movimentacoes', async (req, res) => {
       const id = lerId(req.params.id);
       res.json(

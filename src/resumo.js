@@ -1,6 +1,5 @@
 import { TABELAS_ESTOQUE } from './db.js';
 
-// Painel: totais por categoria, valores em estoque, vendas do mês e itens abaixo do estoque mínimo
 export async function calcularResumo(db) {
   const totais = (tabela) =>
     db.um(
@@ -18,7 +17,6 @@ export async function calcularResumo(db) {
     ).join(' UNION ALL ') + ' ORDER BY quantidade, nome'
   );
 
-  // Vendas = saídas com motivo "Venda" registradas desde o dia 1º do mês atual
   const doMes = `motivo = 'Venda' AND criado_em >= ${db.sql.inicioDoMes}`;
   const vendasMes = db.um(
     `SELECT COUNT(*) AS vendas,

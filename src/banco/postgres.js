@@ -3,12 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-// Ajusta os tipos que o PostgreSQL devolve para ficarem iguais aos do SQLite:
-pg.types.setTypeParser(20, Number); // bigint (COUNT, SUM de inteiros) → número, não texto
-pg.types.setTypeParser(1700, Number); // numeric → número
-pg.types.setTypeParser(1114, (texto) => texto); // timestamp → "AAAA-MM-DD HH:MM:SS", não Date
+pg.types.setTypeParser(20, Number);
+pg.types.setTypeParser(1700, Number);
+pg.types.setTypeParser(1114, (texto) => texto);
 
-// O código usa "?" como marcador (padrão do SQLite); o PostgreSQL espera $1, $2...
 function converterMarcadores(sql) {
   let numero = 0;
   let dentroDeTexto = false;
@@ -32,7 +30,6 @@ function criarOperacoes(cliente) {
   };
 }
 
-// Procura o pg_dump (usado no backup): variável PG_DUMP, PATH ou a instalação padrão do Windows
 function localizarPgDump() {
   if (process.env.PG_DUMP) return process.env.PG_DUMP;
   const pastaWindows = path.join(process.env.ProgramFiles || 'C:\\Program Files', 'PostgreSQL');
@@ -53,7 +50,6 @@ export function conectarPostgres(url) {
     dialeto: 'postgres',
     ...criarOperacoes(pool),
 
-    // Cada transação usa uma conexão própria do pool
     async transacao(executar) {
       const cliente = await pool.connect();
       try {
@@ -69,7 +65,6 @@ export function conectarPostgres(url) {
       }
     },
 
-    // Backup em SQL puro (restaurável com psql), gerado pelo pg_dump que vem com o PostgreSQL
     async gerarCopia() {
       const resultado = spawnSync(localizarPgDump(), ['--clean', '--if-exists', '--no-owner', '--no-privileges', '--dbname', url], {
         maxBuffer: 1024 * 1024 * 1024,

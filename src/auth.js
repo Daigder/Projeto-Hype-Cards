@@ -4,11 +4,10 @@ import { ErroHttp, lerId } from './http.js';
 import { gerarHashSenha, conferirSenha } from './senhas.js';
 
 const COOKIE = 'hc_sessao';
-const DURACAO_SESSAO_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
+const DURACAO_SESSAO_MS = 7 * 24 * 60 * 60 * 1000;
 const TAMANHO_MIN_SENHA = 6;
 const PERFIS = ['admin', 'vendedor'];
 
-// Limite de tentativas de login: 5 erros seguidos bloqueiam aquele usuário/IP por 1 minuto
 const MAX_TENTATIVAS = 5;
 const BLOQUEIO_MS = 60 * 1000;
 const tentativas = new Map();
@@ -49,7 +48,6 @@ export function criarAutenticacao(db) {
       [hashToken(token), Date.now()]
     );
 
-  // Identifica o usuário pelo cookie. Rotas protegidas usam exigirLogin/exigirAdmin depois disto.
   async function carregarUsuario(req, res, next) {
     const token = lerCookies(req)[COOKIE];
     req.usuario = token ? (await buscarSessao(token)) ?? null : null;
@@ -72,7 +70,6 @@ export function criarAutenticacao(db) {
     next();
   }
 
-  // ---------- /api/auth ----------
   const rotasAuth = Router();
 
   rotasAuth.post('/login', async (req, res) => {
@@ -115,7 +112,6 @@ export function criarAutenticacao(db) {
     res.json(usuarioPublico(req.usuario));
   });
 
-  // Troca da própria senha: encerra as outras sessões do usuário, mantém a atual
   rotasAuth.post('/senha', async (req, res) => {
     if (!req.usuario) throw new ErroHttp(401, 'Faça login para continuar.');
     const { senha_atual, nova_senha } = req.body ?? {};
@@ -129,7 +125,6 @@ export function criarAutenticacao(db) {
     res.json(usuarioPublico(await db.um('SELECT * FROM usuarios WHERE id = ?', [req.usuario.id])));
   });
 
-  // ---------- /api/usuarios (somente admin) ----------
   const rotasUsuarios = Router();
   rotasUsuarios.use(exigirAdmin);
 
@@ -154,7 +149,6 @@ export function criarAutenticacao(db) {
     return { nome, usuario, perfil, ativo, senha };
   };
 
-  // Impede que o sistema fique sem nenhum administrador ativo
   const garantirOutroAdmin = async (id) => {
     const { total } = await db.um("SELECT COUNT(*) AS total FROM usuarios WHERE perfil = 'admin' AND ativo = 1 AND id <> ?", [id]);
     if (total === 0) throw new ErroHttp(400, 'É preciso manter pelo menos um administrador ativo.');
@@ -172,7 +166,6 @@ export function criarAutenticacao(db) {
 
   rotasUsuarios.post('/', async (req, res) => {
     const d = lerDadosUsuario(req.body, { senhaObrigatoria: true });
-    // A senha foi definida pelo administrador: o usuário troca no primeiro acesso
     const { id } = await db.um(
       'INSERT INTO usuarios (nome, usuario, senha_hash, perfil, ativo, trocar_senha) VALUES (?, ?, ?, ?, ?, 1) RETURNING id',
       [d.nome, d.usuario, gerarHashSenha(d.senha), d.perfil, d.ativo]
@@ -191,7 +184,6 @@ export function criarAutenticacao(db) {
       if (d.senha) {
         await tx.executar('UPDATE usuarios SET senha_hash = ?, trocar_senha = 1 WHERE id = ?', [gerarHashSenha(d.senha), id]);
       }
-      // Senha redefinida ou acesso desativado: derruba as sessões abertas desse usuário
       if (d.senha || !d.ativo) await tx.executar('DELETE FROM sessoes WHERE usuario_id = ?', [id]);
     });
     res.json(usuarioPublico(await buscarUsuario(id)));

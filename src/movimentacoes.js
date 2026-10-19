@@ -5,7 +5,6 @@ import { gerarCsv, enviarCsv } from './csv.js';
 
 const NOMES_RECURSO = { cartas: 'Carta', produtos: 'Produto', acessorios: 'Acessório' };
 
-// Lê e valida o corpo de uma entrada/saída. Sem motivo, assume "Ajuste de inventário".
 export function validarMovimentacao(corpo, item) {
   const operacao = corpo?.operacao;
   if (operacao !== 'entrada' && operacao !== 'saida') {
@@ -21,7 +20,6 @@ export function validarMovimentacao(corpo, item) {
     throw new ErroHttp(400, `Motivo inválido para ${operacao === 'entrada' ? 'entrada' : 'saída'}. Use: ${motivos.join(', ')}.`);
   }
 
-  // Venda guarda o preço cobrado; compra guarda o custo pago. Se não vier, usa o do cadastro.
   let precoUnitario = null;
   if (motivo === 'Venda' || motivo === 'Compra') {
     const informado = corpo?.preco_unitario;
@@ -54,7 +52,6 @@ export async function registrarMovimentacao(db, {
   );
 }
 
-// Filtros: ?busca= (nome do item), ?recurso=cartas, ?operacao=saida, ?motivo=Venda, ?de=2026-01-01, ?ate=2026-01-31
 function montarFiltros(db, query) {
   const filtros = [];
   const params = [];

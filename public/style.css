@@ -1,4 +1,3 @@
-/* Paleta extraída da logo Hype Cards */
 :root {
   --preto: #141210;
   --creme: #efe6d2;
@@ -7,7 +6,6 @@
   --laranja: #d9822b;
   --marrom: #7a5a44;
 
-  /* Tema claro */
   --fundo: #f5efe3;
   --superficie: #fffaf0;
   --superficie-2: #f8f1e4;
@@ -55,7 +53,6 @@ body {
   transition: background 0.2s, color 0.2s;
 }
 
-/* O topo é sempre escuro, combinando com o fundo da logo */
 .topo {
   background: var(--preto);
   color: var(--creme);
@@ -122,7 +119,6 @@ button.perigo { color: var(--vermelho); }
 button.mini { padding: 2px 8px; font-size: 0.85rem; }
 button:disabled { opacity: 0.5; cursor: not-allowed; border-color: var(--borda); }
 
-/* Link com aparência de botão (exportar CSV) */
 a.botao {
   display: inline-block; padding: 8px 14px; border-radius: 8px; text-decoration: none;
   border: 1px solid var(--borda); background: var(--superficie); color: var(--texto); white-space: nowrap;
@@ -139,12 +135,10 @@ textarea:focus { outline: 2px solid var(--destaque); border-color: transparent; 
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 8px 10px; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--borda); }
 th { white-space: nowrap; }
-/* Textos longos (nome, raridade...) quebram linha em vez de alargar a tabela */
 td { min-width: 70px; overflow-wrap: anywhere; }
 td.celula-foto, td.acoes-linha, td:has(.estoque) { min-width: 0; white-space: nowrap; }
 th { font-size: 0.8rem; text-transform: uppercase; color: var(--texto-suave); background: var(--superficie-2); }
 tbody tr:last-child td { border-bottom: 0; }
-/* Coluna de ações fixa à direita: continua visível mesmo se a tabela precisar rolar */
 .acoes-linha { position: sticky; right: 0; width: 1%; background: var(--superficie); box-shadow: -8px 0 8px -8px rgba(0, 0, 0, 0.35); }
 th.acoes-linha { background: var(--superficie-2); }
 .botoes-linha { display: flex; gap: 6px; }
@@ -187,7 +181,6 @@ dialog h3 { margin-top: 0; }
   .campos { grid-template-columns: 1fr; }
 }
 
-/* ---------- Imagens dos itens ---------- */
 .celula-foto { width: 64px; }
 .miniatura {
   width: 48px; height: 48px; object-fit: cover; display: block;
@@ -223,13 +216,10 @@ dialog h3 { margin-top: 0; }
   .campo-imagem { flex-direction: column; align-items: flex-start; }
 }
 
-/* ---------- Resumo ---------- */
 .duas-colunas { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 0 24px; }
 
-/* ---------- Barra de filtros ---------- */
 .data-filtro { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--texto-suave); }
 
-/* Botões agrupados (Tabela/Grade, Entrada/Saída) */
 .alternador { display: inline-flex; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; }
 .alternador button, .alternador label {
   border: 0; border-radius: 0; background: var(--superficie); color: var(--texto-suave);
@@ -242,7 +232,6 @@ dialog h3 { margin-top: 0; }
 .alternador label:has(input:focus-visible) { outline: 2px solid var(--destaque); outline-offset: -2px; }
 .alternador.largo { display: flex; margin-bottom: 14px; }
 
-/* Cabeçalho ordenável */
 th.ordenavel { padding: 0; }
 th.ordenavel button {
   all: unset; box-sizing: border-box; display: block; width: 100%; padding: 8px 10px; cursor: pointer;
@@ -251,7 +240,6 @@ th.ordenavel button {
 th.ordenavel button:hover, th.ordenavel.ativa button { color: var(--destaque); }
 th.ordenavel button:focus-visible { outline: 2px solid var(--destaque); outline-offset: -2px; }
 
-/* ---------- Paginação ---------- */
 .paginacao {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
   margin-top: 14px; color: var(--texto-suave); font-size: 0.9rem;
@@ -259,7 +247,6 @@ th.ordenavel button:focus-visible { outline: 2px solid var(--destaque); outline-
 .paginacao .botoes-linha { align-items: center; }
 .pagina-atual { padding: 0 6px; }
 
-/* ---------- Visualização em grade ---------- */
 .grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; }
 .cartao-item {
   background: var(--superficie); border-radius: 12px; box-shadow: var(--sombra);
@@ -274,7 +261,6 @@ th.ordenavel button:focus-visible { outline: 2px solid var(--destaque); outline-
 .cartao-linha { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cartao-corpo .botoes-linha { flex-wrap: wrap; }
 
-/* ---------- Movimentações ---------- */
 .etiqueta { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
 .etiqueta.entrada { background: var(--verde-fundo); color: var(--verde); }
 .etiqueta.saida { background: var(--vermelho-fundo); color: var(--vermelho); }
@@ -287,7 +273,6 @@ td.observacao { color: var(--texto-suave); font-size: 0.85rem; max-width: 260px;
 .previa-movimento { margin: 12px 0 0; font-weight: 600; }
 .previa-movimento.negativo { color: var(--vermelho); }
 
-/* ---------- Diálogos ---------- */
 dialog.dialogo-pequeno { width: min(420px, calc(100vw - 32px)); }
 dialog.largo-dialogo { width: min(860px, calc(100vw - 32px)); }
 dialog.largo-dialogo .tabela-wrap { max-height: 60vh; overflow: auto; margin-bottom: 16px; box-shadow: none; border: 1px solid var(--borda); }
@@ -298,7 +283,6 @@ dialog.largo-dialogo .tabela-wrap { max-height: 60vh; overflow: auto; margin-bot
 }
 .info-imagem { color: var(--texto-suave); font-size: 0.8rem; }
 
-/* ---------- Tela de login ---------- */
 .pagina-login {
   min-height: 100vh; display: grid; place-items: center; padding: 16px;
   background: radial-gradient(circle at 50% 0%, #2a211b 0%, var(--preto) 60%);

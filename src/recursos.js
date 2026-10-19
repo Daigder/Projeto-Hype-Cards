@@ -1,4 +1,3 @@
-// Listas de valores aceitos nos campos de seleção (também usadas pelo front-end via /api/opcoes)
 export const OPCOES = {
   raridades: [
     'Comum',
@@ -39,7 +38,6 @@ export const OPCOES = {
     'Dados e Marcadores',
     'Outro',
   ],
-  // "Cadastro inicial" não aparece aqui: é registrado automaticamente ao cadastrar um item com estoque
   motivosEntrada: ['Compra', 'Devolução de cliente', 'Ajuste de inventário'],
   motivosSaida: ['Venda', 'Avaria/Perda', 'Uso interno', 'Ajuste de inventário'],
   perfis: ['admin', 'vendedor'],
@@ -52,7 +50,6 @@ const camposEstoque = {
   estoque_minimo: { rotulo: 'Estoque mínimo', tipo: 'inteiro', padrao: 0 },
 };
 
-// Cada recurso vira um conjunto de rotas CRUD em /api/<chave>
 export const RECURSOS = {
   colecoes: {
     tabela: 'colecoes',

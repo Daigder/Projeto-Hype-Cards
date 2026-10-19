@@ -1,7 +1,6 @@
 const form = document.getElementById('form-login');
 const erro = document.getElementById('erro-login');
 
-// Já está logado? Vai direto para o sistema.
 fetch('/api/auth/eu').then((r) => r.ok && location.replace('/'));
 
 form.addEventListener('submit', async (evento) => {

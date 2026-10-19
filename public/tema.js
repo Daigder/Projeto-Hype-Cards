@@ -1,5 +1,3 @@
-// Tema claro/escuro, compartilhado pela tela de login e pelo sistema.
-// Carregado no <head> (sem defer) para aplicar o tema antes de desenhar a página e não "piscar".
 (() => {
   const raiz = document.documentElement;
   try {

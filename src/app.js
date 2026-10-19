@@ -11,8 +11,6 @@ import { gerarBackup } from './backup.js';
 
 export const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-// Monta a aplicação. Fica separado do server.js para os testes criarem instâncias com banco temporário.
-// Com databaseUrl usa PostgreSQL; sem ela, SQLite no arquivo dbArquivo.
 export async function criarApp({
   databaseUrl,
   dbArquivo = path.join(RAIZ, 'data', 'hypecards.db'),
@@ -26,10 +24,8 @@ export async function criarApp({
   app.use(express.static(path.join(RAIZ, 'public')));
   app.use(carregarUsuario);
 
-  // Rotas abertas: login, logout, sessão atual e troca de senha
   app.use('/api/auth', rotasAuth);
 
-  // Daqui em diante, só com login
   app.use('/imagens', exigirLogin, express.static(pastaImagens));
   app.use('/api', exigirLogin);
 
@@ -59,8 +55,6 @@ export async function criarApp({
       return res.status(413).json({ erro: `Arquivo muito grande. O tamanho máximo é ${TAMANHO_MAX_IMAGEM.toUpperCase()}.` });
     }
 
-    // Erros de restrição do banco. PostgreSQL: códigos 23001/23503 (chave estrangeira) e 23505 (duplicado)
-    // SQLite: texto da mensagem
     const mensagem = `${erro.message} ${erro.constraint ?? ''}`;
     if (['23001', '23503'].includes(erro.code) || mensagem.includes('FOREIGN KEY constraint failed')) {
       return res.status(409).json({

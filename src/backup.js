@@ -2,8 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { criarZip } from './zip.js';
 
-// Gera um .zip com uma cópia do banco e todas as imagens.
-// SQLite: arquivo hypecards.db · PostgreSQL: script hypecards.sql (gerado pelo pg_dump)
 export async function gerarBackup(db, pastaImagens) {
   const arquivos = [await db.gerarCopia()];
   if (fs.existsSync(pastaImagens)) {

@@ -1,5 +1,3 @@
-// Utilitários comuns às rotas da API
-
 const MAX_POR_PAGINA = 100;
 
 export class ErroHttp extends Error {
@@ -15,7 +13,6 @@ export function lerId(valor) {
   return id;
 }
 
-// ?pagina=2&por_pagina=20 → LIMIT/OFFSET. Sem "pagina", devolve todos os registros.
 export function lerPaginacao(query) {
   if (query.pagina === undefined) return null;
   const pagina = Number(query.pagina);

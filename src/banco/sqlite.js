@@ -4,15 +4,13 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-// Driver SQLite. O node:sqlite é síncrono e usa uma única conexão; como o resto do sistema é assíncrono,
-// uma transação em andamento bloqueia as demais operações até terminar (senão elas cairiam dentro dela).
 export function conectarSqlite(arquivo) {
   fs.mkdirSync(path.dirname(arquivo), { recursive: true });
   const db = new DatabaseSync(arquivo);
   db.exec('PRAGMA foreign_keys = ON;');
 
-  let fila = Promise.resolve(); // transações rodam uma de cada vez
-  let ativa = null; // promessa da transação em andamento (nunca rejeita)
+  let fila = Promise.resolve();
+  let ativa = null;
   const livre = async () => {
     while (ativa) await ativa;
   };
@@ -24,7 +22,6 @@ export function conectarSqlite(arquivo) {
     executarScript: async (sql) => db.exec(sql),
   };
 
-  // Fora de transação: espera a transação atual terminar e executa (sem await no meio, então não intercala)
   const foraDeTransacao = Object.fromEntries(
     Object.entries(operacoes).map(([nome, operacao]) => [
       nome,
@@ -61,7 +58,6 @@ export function conectarSqlite(arquivo) {
       return execucao;
     },
 
-    // Cópia consistente do banco para o backup, mesmo com o sistema em uso
     async gerarCopia() {
       await livre();
       const copia = path.join(os.tmpdir(), `hypecards-${crypto.randomUUID()}.db`);

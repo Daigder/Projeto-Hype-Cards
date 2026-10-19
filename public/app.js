@@ -17,10 +17,6 @@ const salvarPreferencia = (chave, valor) => {
   try { localStorage.setItem(chave, valor); } catch {}
 };
 
-// ---------- Comunicação com a API ----------
-
-// body pode ser um objeto (enviado como JSON) ou um arquivo (enviado como está, ex.: imagem).
-// Com { completo: true } devolve também o total de registros (cabeçalho X-Total-Count).
 async function api(caminho, { method = 'GET', body, completo = false } = {}) {
   const arquivo = body instanceof Blob;
   const resposta = await fetch(`/api/${caminho}`, {
@@ -43,16 +39,12 @@ async function api(caminho, { method = 'GET', body, completo = false } = {}) {
   return { dados, total: total === null ? null : Number(total) };
 }
 
-// ---------- Estado ----------
-
 let usuario = null;
 let opcoes = {};
 let colecoes = [];
 let abaAtual = 'resumo';
 let editandoId = null;
-// Estado da imagem no formulário: arquivo escolhido e se a imagem atual deve ser removida
 let imagemForm = { arquivo: null, remover: false };
-// Ordenação e página da lista atual (zeradas ao trocar de aba)
 let lista = { pagina: 1, ordenar: null, direcao: 'asc' };
 let paginaMov = 1;
 let porPagina = Number(lerPreferencia('porPagina', 20));
@@ -60,13 +52,10 @@ let porPagina = Number(lerPreferencia('porPagina', 20));
 const ehAdmin = () => usuario?.perfil === 'admin';
 
 const TIPOS_IMAGEM = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
-const TAMANHO_MAX_ORIGINAL = 20 * 1024 * 1024; // a foto é reduzida no navegador antes de enviar
-const TAMANHO_MAX_ENVIO = 5 * 1024 * 1024; // limite do servidor
-const LADO_MAX_IMAGEM = 1000; // px
+const TAMANHO_MAX_ORIGINAL = 20 * 1024 * 1024;
+const TAMANHO_MAX_ENVIO = 5 * 1024 * 1024;
+const LADO_MAX_IMAGEM = 1000;
 const urlImagem = (item) => (item?.imagem ? `/imagens/${encodeURIComponent(item.imagem)}` : null);
-
-// ---------- Definição das telas de cadastro ----------
-// colunas: [título, função que gera o valor, chave de ordenação no servidor (opcional)]
 
 const colunaColecao = ['Coleção', (i) => i.colecao_nome, 'colecao_nome'];
 const colunaPreco = ['Preço', (i) => moeda.format(i.preco), 'preco'];
@@ -191,8 +180,6 @@ const RECURSOS = {
   },
 };
 
-// ---------- Utilitários de interface ----------
-
 function avisar(mensagem, falha = false) {
   const aviso = $('#aviso');
   aviso.textContent = mensagem;
@@ -208,7 +195,6 @@ function criar(tag, propriedades = {}, filhos = []) {
   return el;
 }
 
-// Substitui o confirm() do navegador por um diálogo no visual do sistema
 function confirmar(titulo, mensagem, textoOk = 'Confirmar') {
   const dialogo = $('#dlg-confirmar');
   $('#confirmar-titulo').textContent = titulo;
@@ -267,7 +253,6 @@ function ampliarImagem(url, nome) {
   $('#visualizador').showModal();
 }
 
-// Barra "Mostrando 1–20 de 57 · ‹ Anterior · Próxima ›"
 function desenharPaginacao(container, pagina, total, irPara) {
   if (total === null || total <= Math.min(porPagina, 10)) return container.replaceChildren();
   const paginas = Math.max(1, Math.ceil(total / porPagina));
@@ -290,8 +275,6 @@ function desenharPaginacao(container, pagina, total, irPara) {
     seletor
   );
 }
-
-// ---------- Resumo ----------
 
 async function carregarResumo() {
   const r = await api('resumo');
@@ -345,8 +328,6 @@ async function carregarResumo() {
   $('#tabela-baixo').replaceChildren(...(baixos.length ? baixos : [linhaVazia(5, 'Tudo certo! Nenhum item abaixo do mínimo.')]));
 }
 
-// ---------- Listagem dos cadastros ----------
-
 function filtrosLista() {
   const recurso = RECURSOS[abaAtual];
   const params = new URLSearchParams();
@@ -370,7 +351,6 @@ async function carregarLista() {
   params.set('por_pagina', porPagina);
 
   const { dados: itens, total } = await api(`${abaAtual}?${params}`, { completo: true });
-  // Página ficou vazia (ex.: excluiu o último item dela)? Volta uma.
   if (!itens.length && lista.pagina > 1) {
     lista.pagina -= 1;
     return carregarLista();
@@ -419,7 +399,6 @@ function desenharTabela(recurso, itens) {
   );
 }
 
-// Vitrine com fotos (cartas, produtos e acessórios)
 function desenharGrade(itens) {
   const recurso = RECURSOS[abaAtual];
   $('#visao-grade').replaceChildren(
@@ -457,8 +436,6 @@ async function carregarColecoes() {
   );
   filtro.value = colecoes.some((c) => String(c.id) === selecionada) ? selecionada : '';
 }
-
-// ---------- Movimentações (histórico geral) ----------
 
 function filtrosMovimentacoes() {
   const params = new URLSearchParams();
@@ -510,7 +487,6 @@ async function carregarMovimentacoes() {
   });
 }
 
-// Histórico de um item, em um diálogo
 async function abrirHistorico(item) {
   try {
     const historico = await api(`${abaAtual}/${item.id}/movimentacoes`);
@@ -535,8 +511,6 @@ async function abrirHistorico(item) {
     avisar(erro.message, true);
   }
 }
-
-// ---------- Troca de abas ----------
 
 async function trocarAba(aba) {
   if (RECURSOS[aba]?.soAdmin && !ehAdmin()) aba = 'resumo';
@@ -568,8 +542,6 @@ async function trocarAba(aba) {
   }
 }
 
-// ---------- Ações ----------
-
 const dlgMov = $('#dlg-movimentar');
 const formMov = $('#form-movimentar');
 let itemMovimentado = null;
@@ -586,7 +558,6 @@ function abrirMovimentacao(item, operacao) {
   formMov.quantidade.select();
 }
 
-// Ajusta motivos e o campo de valor conforme a operação, e mostra a prévia "Estoque: 6 → 4"
 function atualizarFormMovimentacao(trocouOperacao = false) {
   const operacao = formMov.operacao.value;
   if (trocouOperacao) {
@@ -678,8 +649,6 @@ function abrirFormulario(item = null) {
   $('#modal').showModal();
 }
 
-// Reduz a foto no navegador (lado maior até 1000px, formato WEBP) antes de enviar:
-// uma foto de celular de 5 MB vira algo em torno de 100–300 KB.
 async function reduzirImagem(arquivo) {
   const bitmap = await createImageBitmap(arquivo);
   const escala = Math.min(1, LADO_MAX_IMAGEM / Math.max(bitmap.width, bitmap.height));
@@ -690,18 +659,15 @@ async function reduzirImagem(arquivo) {
   contexto.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   let reduzida = await gerar('image/webp');
   if (!reduzida || reduzida.type !== 'image/webp') {
-    // Navegador sem suporte a WEBP: usa JPEG, com fundo branco no lugar da transparência
     contexto.globalCompositeOperation = 'destination-over';
     contexto.fillStyle = '#fff';
     contexto.fillRect(0, 0, canvas.width, canvas.height);
     reduzida = await gerar('image/jpeg');
   }
   bitmap.close();
-  // Já era pequena e a conversão não ajudou: mantém o arquivo original
   return escala === 1 && arquivo.size <= reduzida.size ? arquivo : reduzida;
 }
 
-// Campo de upload com pré-visualização. O arquivo só é enviado depois que o registro é salvo.
 function campoImagem(item) {
   imagemForm = { arquivo: null, remover: false };
   const previa = criar('img', { className: 'previa-imagem', alt: 'Pré-visualização' });
@@ -776,7 +742,6 @@ $('#form').addEventListener('submit', async (evento) => {
     if (editandoId) {
       await api(`${abaAtual}/${editandoId}`, { method: 'PUT', body: dados });
     } else {
-      // Guarda o id já criado: se o envio da imagem falhar, um novo "Salvar" atualiza em vez de duplicar
       editandoId = (await api(abaAtual, { method: 'POST', body: dados })).id;
     }
     if (recurso.imagem) await salvarImagem(editandoId);
@@ -786,11 +751,9 @@ $('#form').addEventListener('submit', async (evento) => {
     await carregarLista();
   } catch (erro) {
     $('#erro-form').textContent = erro.message;
-    carregarLista().catch(() => {}); // o registro pode ter sido salvo mesmo que a imagem tenha falhado
+    carregarLista().catch(() => {});
   }
 });
-
-// ---------- Sessão: troca de senha, backup e saída ----------
 
 const dlgSenha = $('#dlg-senha');
 let senhaObrigatoria = false;
@@ -805,7 +768,6 @@ function abrirTrocaSenha(obrigatoria = false) {
   dlgSenha.showModal();
 }
 
-// Na troca obrigatória, o diálogo não pode ser fechado com Esc
 dlgSenha.addEventListener('cancel', (e) => senhaObrigatoria && e.preventDefault());
 
 $('#form-senha').addEventListener('submit', async (evento) => {
@@ -852,8 +814,6 @@ $('#btn-backup').addEventListener('click', async () => {
   }
 });
 
-// ---------- Eventos gerais ----------
-
 $('#btn-cancelar').addEventListener('click', () => $('#modal').close());
 document.querySelectorAll('[data-fechar]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
 $('#visualizador').addEventListener('click', () => $('#visualizador').close());
@@ -866,7 +826,6 @@ $('#alternador-visao').addEventListener('click', (e) => {
   carregarLista().catch((erro) => avisar(erro.message, true));
 });
 
-// Busca com pequeno atraso para não consultar a cada tecla
 function aoMudar(seletores, acao, eventos = ['change']) {
   let atraso;
   for (const seletor of seletores) {
@@ -882,8 +841,6 @@ aoMudar(['#busca'], () => { lista.pagina = 1; return carregarLista(); }, ['input
 aoMudar(['#filtro-colecao', '#filtro-baixo'], () => { lista.pagina = 1; return carregarLista(); });
 aoMudar(['#mov-busca'], () => { paginaMov = 1; return carregarMovimentacoes(); }, ['input']);
 aoMudar(['#mov-recurso', '#mov-operacao', '#mov-motivo', '#mov-de', '#mov-ate'], () => { paginaMov = 1; return carregarMovimentacoes(); });
-
-// ---------- Início ----------
 
 async function iniciarSistema() {
   const perfil = usuario.perfil === 'admin' ? 'Administrador' : 'Vendedor';
