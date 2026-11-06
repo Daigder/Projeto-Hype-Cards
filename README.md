@@ -8,6 +8,12 @@ Este projeto é um sistema web para controlar o estoque de uma loja de produtos 
 ## Imagem da Página Inicial do Projeto
 ![Página inicial do Hype Cards: painel de resumo com vendas e lucro do mês, valor do estoque e itens com estoque baixo](docs/imagens/tela-resumo.png)
 
+## 🎥 Apresentação - Projeto de Desenvolvimento de Software I
+
+[![Assista à apresentação do projeto no YouTube](https://img.youtube.com/vi/x3EJ9UXFlEo/maxresdefault.jpg)](https://youtu.be/x3EJ9UXFlEo)
+
+Link do vídeo: https://youtu.be/x3EJ9UXFlEo
+
 ## 🛠️ Funcionalidades
 
 1. **Gerenciamento do Estoque**
