@@ -10,6 +10,8 @@ Este projeto é um sistema web para controlar o estoque de uma loja de produtos 
 
 ## 🎥 Apresentação - Projeto de Desenvolvimento de Software I
 
+- [Slides da apresentação (PDF)](docs/Hype%20Cards%20%E2%80%93%20Apresenta%C3%A7%C3%A3o%20PDF.pdf)
+
 [![Assista à apresentação do projeto no YouTube](https://img.youtube.com/vi/x3EJ9UXFlEo/maxresdefault.jpg)](https://youtu.be/x3EJ9UXFlEo)
 
 Link do vídeo: https://youtu.be/x3EJ9UXFlEo
